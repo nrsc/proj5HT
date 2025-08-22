@@ -31,6 +31,8 @@ HTR2 = c("HTR2A", "HTR2B", "HTR2C")
 HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
 
 legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+
+
 ```
 
 ## if you’re working with Allen Brain Atlas single-cell references, subclass_Corr is the correlation-based direct subclass assignment, while subclass_Tree is the hierarchical tree-based subclass assignment that mirrors their cell type taxonomy.
