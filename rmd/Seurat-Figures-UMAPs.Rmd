@@ -1,0 +1,126 @@
+---
+title: "Seurat figures for off-pipeline data"
+author: "SawchukS"
+date: "2025-07-16"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      out.width = "100%",
+                      warning = FALSE,
+                      cache = TRUE)
+
+library(metap)
+library(feather)
+library(Seurat)
+library(ggplot2)
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+HTRgenesINT = c(
+  "HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C", "HTR4", "HTR5A", "HTR6", "HTR7"
+)
+HTRgenes12 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C")
+HTR1 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
+HTR2 = c("HTR2A", "HTR2B", "HTR2C")
+HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
+
+legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+```
+
+## All SmartSeq
+
+```{r}
+allSmart = readRDS("~/proj/proj5HT/data-raw/all_SmartSeq.rds")
+allSmart[["percent.mt"]] <- PercentageFeatureSet(allSmart, pattern = "^MT*")
+#excSmartbrain = subset(SmrtSeq.offP, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+
+```
+
+## Off-pipeline SmartSeq
+
+```{r import Seurat objects , include=FALSE}
+brain = readRDS("~/proj/proj5HT/data-raw/offPipeline_SmartSeq.rds")
+brain[["percent.mt"]] <- PercentageFeatureSet(brain, pattern = "^MT*")
+
+#brain = subset(SmrtSeq.offP, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+#pValbChand = subset(SmrtSeq.offP, subset = subclass %in% c("Chandelier", "Pvalb"))
+```
+
+
+
+
+### Split by set and Group by subclass
+```{r}
+
+scBrain <- SCTransform(brain, vars.to.regress = "percent.mt") %>%
+    RunPCA() %>%
+    FindNeighbors(dims = 1:30) %>%
+    RunUMAP(dims = 1:30) %>%
+    FindClusters()
+
+
+
+scBrain = SCTransform(brain, verbose = FALSE)
+scBrain = RunPCA(scBrain, verbose = FALSE)
+scBrain = RunUMAP(scBrain, dims = 1:30, verbose = FALSE)
+scBrain = FindNeighbors(scBrain, dims = 1:30, verbose = FALSE)
+scBrain = FindClusters(scBrain, verbose = FALSE)
+
+DimPlot(scBrain, label = TRUE)
+DimPlot(scBrain,, reduction = "umap", label = FALSE, group.by = "subclass")
+#DimPlot(scBrain,, reduction = "umap", label = TRUE, group.by = "neighbourhoodCorr")
+
+```
+
+
+```{r}
+
+seurat_obj <- NormalizeData(brain)
+seurat_obj <- ScaleData(seurat_obj)
+seurat_obj <- FindVariableFeatures(seurat_obj)
+seurat_obj <- RunPCA(seurat_obj)
+seurat_obj <- FindNeighbors(seurat_obj, dims = 1:20)
+seurat_obj <- FindClusters(seurat_obj, resolution = 0.5)
+seurat_obj <- RunUMAP(seurat_obj, dims = 1:20)
+
+DimPlot(seurat_obj, reduction = "umap", label = TRUE)
+
+DimPlot(seurat_obj, reduction = "umap", label = FALSE, group.by = "subclass")
+
+
+
+Idents(seurat_obj)
+
+
+```
+
+
+```{r}
+scSmart <- SCTransform(allSmart, vars.to.regress = "percent.mt") %>%
+    RunPCA() %>%
+    FindNeighbors(dims = 1:30) %>%
+    RunUMAP(dims = 1:30) %>%
+    FindClusters()
+```
+
+
+```{r}
+#scSmart = subset(scSmart, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+
+DimPlot(scSmart, reduction = "umap", label = TRUE)
+
+DimPlot(scSmart, reduction = "umap", label = TRUE, group.by = "pipe")
+
+DimPlot(scSmart, reduction = "umap", label = FALSE, group.by = "subclass")
+
+```
+
+
+
+

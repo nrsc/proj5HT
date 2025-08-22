@@ -1,0 +1,358 @@
+---
+title: "Seurat figures for combined on and off pipeline data"
+author: "SawchukS"
+date: "2025-07-16"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      out.width = "100%",
+                      warning = FALSE,
+                      cache = TRUE)
+
+library(metap)
+library(feather)
+library(Seurat)
+library(ggplot2)
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+HTRgenesINT = c(
+  "HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C", "HTR4", "HTR5A", "HTR6", "HTR7"
+)
+HTRgenes12 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C")
+HTR1 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
+HTR2 = c("HTR2A", "HTR2B", "HTR2C")
+HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
+
+legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+```
+
+## if you’re working with Allen Brain Atlas single-cell references, subclass_Corr is the correlation-based direct subclass assignment, while subclass_Tree is the hierarchical tree-based subclass assignment that mirrors their cell type taxonomy.
+
+
+### subclass_Corr labeling
+    Method: Based on correlation to reference expression profiles. 
+    A cell’s transcriptome is compared (often via Pearson/Spearman correlation or cosine similarity) to reference profiles for known subclasses.
+    The best-correlated subclass is assigned.
+    Pros:
+        Simple, quantitative, interpretable.
+        Works well if your data matches the reference in technical profile.
+    Cons:
+        Can be misled by batch effects or global shifts.
+        Doesn’t enforce hierarchical relationships — the best match could be biologically implausible if the correlation is skewed.
+
+### subclass_Tree labeling
+    Method: Based on hierarchical decision tree classification.
+    The annotation proceeds step-by-step:
+        First, broad class is identified (e.g., excitatory neuron vs inhibitory neuron vs glia).
+        Then, within that class, the algorithm refines to a subclass (e.g., L2/3 IT vs L5 ET).
+    This is often implemented as a series of marker-based or trained binary classifiers at each node in the tree.
+    Pros:
+        Respects biological hierarchy.
+        Reduces risk of “jumping” to an unrelated subclass.
+    Cons:
+        If an early branch is misclassified, all downstream labels will be wrong.
+        Performance depends on the quality of markers at each decision split.
+
+```{r Human all-PatchSeq SeuratObjects, include=FALSE}
+hePS = readRDS("~/proj/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
+table(hePS$subclass_Corr_label)
+table(hePS$subclass_Tree_label)
+table(hePS$Region_label)
+table(hePS$pipe_origin)
+
+ggplot(hePS@meta.data, aes(x = score.Corr_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+ggplot(hePS@meta.data, aes(x = score.Tree_label, fill = pipe_origin, colour = subclass_Corr_label)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+# tst = subset(hePS, score.Tree_label > 0.75)
+# table(tst$subclass_Corr_label)
+# table(hePS$subclass_Corr_label)
+# table(tst$subclass_Tree_label)
+
+# ggplot(hePS@meta.data, aes(x = hePS$percent_reads_aligned_unique_label, fill = pipe_origin, group )) +
+#   geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+#   scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+#   theme_minimal()
+# 
+# ggplot(hePS@meta.data, aes(x = hePS$percent_reads_aligned_to_introns_label, fill = pipe_origin)) +
+#   geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+#   scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+#   theme_minimal()
+# 
+# ggplot(hePS@meta.data, aes(x = hePS$percent_reads_aligned_to_exons_label, fill = pipe_origin)) +
+#   geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+#   scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+#   theme_minimal()
+
+```
+
+
+```{r Macaque all-PatchSeq SeuratObjects, include=FALSE}
+mePS = readRDS("~/proj/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
+table(mePS$subclass_Corr_label)
+table(mePS$subclass_Tree_label)
+table(mePS$Region_label)
+table(mePS$pipe_origin)
+
+# TODO isolate MCx and TCx for the mePS dataset
+
+## QC of mePS
+ggplot(mePS@meta.data, aes(x = score.Corr_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+ggplot(mePS@meta.data, aes(x = score.Tree_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+ggplot(mePS@meta.data, aes(x = percent_reads_aligned_unique_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+ggplot(mePS@meta.data, aes(x = percent_reads_aligned_to_introns_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+
+ggplot(mePS@meta.data, aes(x = percent_reads_aligned_to_exons_label, fill = pipe_origin)) +
+  geom_histogram(position = "dodge", alpha = 0.6, bins = 30) +
+  scale_fill_manual(values = c("off-pipeline" = "steelblue", "on-pipeline" = "tomato")) +
+  theme_minimal()
+```
+
+# 5HT2
+
+### Human vs Macaque
+Very little data from the human dataset when selecting for TCx only
+
+```{r fig.dims = c(4,4)}
+grid.arrange(
+  DotPlot(
+    object = hePS,
+    features = HTR2,
+    group.by = "subclass_Corr_label",
+    #split.by = "Cortical_area",
+    scale = FALSE,
+        scale.min = 0,
+    scale.max = 100
+    #cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Human op Patch-Seq"),
+  DotPlot(
+    object = subset(mePS, subclass_Corr_label = "TCx" ),
+    features = HTR2,
+    group.by = "subclass_Corr_label",
+    #split.by = "Cortical_area",
+    scale = FALSE,
+        scale.min = 0,
+    scale.max = 100
+    #cols = c("white", "blue")
+    ) + guides(legend_guides) + ggtitle("Macaque op Patch-Seq"),
+  ncol = 2
+)
+```
+
+
+```{r fig.dims = c(4,4)}
+# TODO Make figure for desciribing number of cells from each region once paired down.
+
+df = data.frame(subclass = c(mePS$subclass_Corr_label,hePS$subclass_Corr_label), prep = c(mePS$species_label, hePS$species_label))
+ggplot(df, aes(x = subclass, fill = prep)) +
+  geom_bar() +
+  theme_minimal()
+
+
+unique(df$prep)
+which(df$prep ==  "Saimiri sciureus")
+```
+
+
+```
+
+# HTR1
+
+### Macaque, Chimp, Gorilla, and Human comparison of HTR1 genes 
+
+```{r fig.dims = c(4,4)}
+grid.arrange(
+  DotPlot(
+    object = hopPS,
+    features = HTR1,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("HTR1 genes op-Human TCx Patch-Seq"),
+  DotPlot(
+    object = mopPS,
+    features = HTR1,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+    ) + guides(legend_guides) + ggtitle("HTR1 genes op-Macaque TCx Patch-Seq"),
+ ncol = 2
+)
+
+```
+
+
+```{r fig.dims = c(4,4)}
+grid.arrange(
+  DotPlot(
+    object = hopPS,
+    features = HTR0,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Human TCx 10xFACs"),
+  DotPlot(
+    object = mopPS,
+    features = HTR0,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+    ) + guides(legend_guides) + ggtitle("Macaque TCx 10xFACs"),
+  DotPlot(
+    object = cMTG,
+    features = HTR0,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Chimp TCx 10xFACs"),
+  DotPlot(
+    object = gMTG,
+    features = HTR0,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    scale.min = 0,
+    scale.max = 100,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Gorilla TCx 10xFACs"),
+  ncol = 4
+)
+
+```
+
+
+
+```{r}
+grid.arrange(
+  DotPlot(
+    object = hopPS,
+    features = HTR2,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Human TCx 10x"),
+  DotPlot(
+    object = macMTG,
+    features = HTR2,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Macaque TCx 10x"),
+  DotPlot(
+    object = cMTG,
+    features = HTR2,
+    group.by = "subclass_Corr_label",
+    scale = FALSE,
+    cols = c("white", "blue")
+  ) + guides(legend_guides) + ggtitle("Chimp TCx 10x"),
+  ncol = 3
+)
+```
+
+
+
+```{r, fig.height=8, fig.width=10, eval =FALSE}
+DotPlot(object = brain, features = HTR1, group.by = "subclass", scale = FALSE) + guides(legend_guides)
+```
+
+```{r, fig.height=8, fig.width=6, eval =FALSE}
+DotPlot(object = brain, features = HTR2, group.by = "subclass", scale = FALSE) + guides(legend_guides)
+```
+
+```{r, fig.height=8, fig.width=8, eval =FALSE}
+DotPlot(object = brain, features = HTR0, group.by = "subclass", scale = FALSE) + guides(legend_guides)
+```
+
+## Plot Cluster types 
+
+### L2/3 IT cluster types
+
+```{r}
+VlnPlot(object = subset(brain, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster")
+```
+
+```{r}
+
+grid.arrange(
+DotPlot(object = subset(brain, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID Smart-Seq Patch-Seq"),
+DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID fo 10x-FACs data"),
+nrow = 2
+)
+```
+
+```{r}
+
+brain2 = subset(brain, subset = Cortical_area %in% "TCx")
+
+grid.arrange(
+DotPlot(object = subset(brain2, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID Smart-Seq Patch-Seq"),
+DotPlot(object = subset(brain2, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID Smart-Seq Patch-Seq"),
+#DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID fo 10x-FACs data"),
+#DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID fo 10x-FACs data"),
+nrow = 2
+)
+```
+
+### L5 ET cluster types
+
+```{r}
+VlnPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster")
+```
+
+```{r}
+DotPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides)
+```
+
+```{r}
+
+grid.arrange(
+DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID fo 10x-FACs data"),
+DotPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID Smart-Seq Patch-Seq"),
+nrow = 2
+)
+```
+
+## Violin plots Without Normalizing the data
+```{r, fig.height=15, fig.width=12}
+#VlnPlot(mopPS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
+#VlnPlot(hopPS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
+#VlnPlot(hePS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
+```
+

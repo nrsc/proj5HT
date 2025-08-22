@@ -1,0 +1,417 @@
+---
+title: "Seurat-Object-v0.0.1"
+author: "SawchukS"
+date: "2025-06-13"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      out.width = "100%",
+                      warning = FALSE,
+                      cache = TRUE)
+
+library(metap)
+library(feather)
+library(Seurat)
+library(ggplot2)
+
+mtgFolder = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/"
+patchseqFolder = "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+MD$Brain_Region
+
+```
+
+# Loading the annotation data for the 10x
+
+```{r 10x Data, eval = FALSE}
+subclass<-c('L5 IT', 'L5 ET', "L2/3 IT", "L6 IT")
+subclass10x <-c('L5 IT', 'L5 ET',"L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b", "Chandelier", "Pvalb", "Sst")
+
+#### Feather for 10x data ####
+# Annotation data
+aMTG <- read_feather(paste(mtgFolder, "anno.feather",sep=""))
+aMTG$Cortical_area = "TCx"
+
+
+# Select Subclass
+#dMTG<-dMTG[,is.element(aMTG$subclass_label,subclass)]
+
+aMTG<-aMTG[is.element(aMTG$subclass_label,subclass),]
+
+#aMTG_metadata
+
+#unique(aMTG$subclass_label)
+#unique(aMTG$)
+#unique(aMTG$)
+
+
+
+```
+
+# 10x Counts data
+
+Load counts. Check tha
+
+```{r 10x Counts build, eval = FALSE}
+# Unmodified counts with all cells, all genes.
+cMTG<-  read_feather(paste(mtgFolder, "counts.feather",sep=""))
+
+# Feather loads in tibble. Change to dataframe 
+cMTG = as.data.frame(cMTG)
+colnames(cMTG)
+colnames(cMTG)[1]
+gene = cMTG$gene
+rownames(cMTG) = gene
+#rownames(cMTG)
+
+## Test match
+match(colnames(cMTG),aMTG$sample_id)
+match(colnames(cMTG),aMTG$sample_id[1])
+colnames(cMTG)[1]
+##
+
+# Select the cells, identified by column names, by those that are left in the annotation data
+cMTG = cMTG[,match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
+# Annotation data is filtered by subtype at this point. 
+
+
+rownames(cMTG)
+colnames(cMTG)
+
+# Chech that the sequence is unbroken
+identical(seq(1,length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))
+
+###
+#write_feather(cMTG, "~/proj/proj5HT/data-raw/L6L5L23_cMTG.feather")
+saveRDS(cMTG, "~/proj/proj5HT/data-raw/L6L5L23_cMTG.rds")
+saveRDS(cMTG, "~/proj/proj5HT/data-raw/cMTG_all.rds")
+#saveRDS(gene, "~/proj/proj5HT/data-raw/10xgenes.rds")
+```
+
+
+```{r 10x Counts, eval = FALSE}
+cMTG = readRDS("~/proj/proj5HT/data-raw/L6L5L23_cMTG.rds")
+#cMTG<- read_feather("~/proj/proj5HT/data-raw/L6L5L23_cMTG.feather")
+
+cMTG = as.data.frame(cMTG)
+rownames(cMTG)
+#rownames(cMTG) = gene
+
+#colnames(cMTG)
+colSums(cMTG[4])
+cMTG = cMTG*10^6/rep(colSums(cMTG), each=nrow(cMTG))
+colSums(cMTG[4])
+
+cMTG = log2(cMTG+1)
+colSums(cMTG[4])
+
+
+saveRDS(cMTG, "~/proj/proj5HT/data-raw/L6L5L23_cMTG_RPM_log2.rds")
+
+```
+
+```{r}
+
+#brain.cMTG <- cMTG
+names(aMTG)[grep("label", names(aMTG))]
+
+unique(aMTG$subclass_label)
+unique(aMTG$class_label)
+unique(aMTG$reads_mapped_confidently_to_exonic_regions_label)
+unique(aMTG$reads_mapped_confidently_to_intronic_regions_label)
+
+
+
+metadata.cMTG <- data.frame(
+  set = rep("FACs-Data", dim(cMTG)[2]),
+  Cortical_area = aMTG$roi_label,
+  subclass = aMTG$subclass_label,
+  
+)
+
+rownames(aMTG) <- colnames(cMTG)
+rownames(brain.metadata.cMTG) <- colnames(cMTG)
+
+  
+## Construct data set lists
+Seurat_cMTG <- CreateSeuratObject(counts = cMTG, meta.data = aMTG, project = "5HTcMTG")
+saveRDS(Seurat_cMTG, "~/proj/proj5HT/data-raw/Seurat-brain_cMTG_counts-log2.rds")
+
+
+
+
+```
+
+# Loading the annotation data for the Patch-seq data
+
+Load feather data and select out our cells
+
+```{r patchMD, eval = FALSE}
+# Load feather data
+aPatch<-read_feather(paste(patchseqFolder, "anno.feather",sep=""))
+tstAP = aPatch[match(MD$cell_name,aPatch$cell_name_label, nomatch = 0),]
+tstMD = MD[match(tstAP$cell_name_label, MD$cell_name, nomatch = 0),]
+
+# Check for matches
+tstMD$cell_name[1:10]
+tstAP$cell_name_label[1:10]
+
+# Check for matches
+tstMD$patched_cell_container[1:10]
+tstAP$patched_cell_container_label[1:10]
+
+tstMD$patched_cell_container_label = tstMD$patched_cell_container
+tstMD$sample_id = NULL
+
+sMD = merge(tstAP, tstMD, "patched_cell_container_label")
+
+unique(sMD$Cortical_area)
+unique(sMD$subclass_Tree_label)
+
+sMD = sMD[is.element(sMD$subclass_Tree_label, subclass),]
+
+```
+
+
+
+# Patch-seq data
+
+```{r Patch data, eval = FALSE}
+#### Feather for patch data ####
+#aPatch<-read_feather(paste(patchseqFolder, "anno.feather",sep=""))
+dPatch<- read_feather(paste(patchseqFolder, "data.feather", sep =""))
+dPatch$sample_id
+dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id),]
+
+# Match by ID
+#aPatch<- aPatch[match(aPatch$sample_id, dPatch$sample_id),]
+identical(sMD$sample_id, dPatch$sample_id)
+
+unique(sMD$subclass_Tree_label)
+
+```
+
+
+
+### Building the object
+data from transcriptomics reads has to have the rownames as the genes, and colnames as the cell identifiers
+metadata for input has to have rownames to match the colnames of the transcriptomics data.
+
+```{r, eval = FALSE}
+
+dPatch = as.data.frame(dPatch)
+colnames(dPatch)
+rownames(dPatch)
+str(dPatch)
+
+#### Set rownames and colnames before transposing ####
+rownames(dPatch) = dPatch$sample_id
+sampleID_dPatch = dPatch$sample_id
+dPatch$sample_id = NULL
+str(dPatch)
+rownames(dPatch)
+
+colSums(dPatch)[4]
+
+dPatch = as.data.frame(t(dPatch))
+
+colSums(dPatch)[4]
+
+colnames(dPatch)
+rownames(dPatch)
+
+
+
+#### Dp a log transformation of the data object
+dPatch = log2(dPatch+1)
+
+saveRDS(dPatch, "~/proj/proj5HT/data-raw/dPatch_counts-patch-log2.rds")
+saveRDS(sMD, "~/proj/proj5HT/data-raw/sMD.rds")
+
+```
+
+# Construct data object
+
+```{r}
+
+brain.data = dPatch
+brain.metadata =  data.frame(
+  set = rep("Patch-seq", dim(dPatch)[2]),
+  subclass = sMD$subclass_Tree_label,
+  Cortical_area = sMD$Cortical_area
+  
+)
+rownames(brain.metadata) <- colnames(brain.data)
+brain <- CreateSeuratObject(counts = brain.data, meta.data = brain.metadata, project = "5HTdPatch")
+
+saveRDS(brain, "~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+
+
+```
+
+
+# Transformed Seurat object
+Load transformed object
+```{r}
+#brain = readRDS("~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+
+#brain = SCTransform(brain, verbose = FALSE)
+#brain.list <- SplitObject(object = brain, split.by = "set")
+
+
+```
+
+
+# Do a percentage feature set for an initial observation of the data.  
+```{r}
+brain[["percent.mt"]] <- PercentageFeatureSet(brain, pattern = "^MT*")
+```
+
+
+## Figures
+Combined shows nCount_RNA being far from each other
+```{r, eval = TRUE}
+VlnPlot(brain, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+
+Separating by method.
+```{r, eval = TRUE}
+VlnPlot(brain, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, group.by = "set") + theme(legend.position = "bottom")
+
+VlnPlot(brain, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, group.by = "subclass") + theme(legend.position = "bottom")
+```
+
+
+# Without Normalizing the data
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, group.by = "subclass")
+```
+
+### Split by set and Group by subclass
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass")
+```
+
+### Dotplot
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = brain, features = HTRgenes12, split.by = "set") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = brain, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+#DotPlot(object = brain.list$PatchSeq, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = brain, features = HTRgenesINT, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain.list$PatchSeq, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp")) + ggtitle("Patch Seq expression")
+```
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain.list$`FACs-Data`, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp")) + ggtitle("FACs expression")
+```
+
+
+
+```{r}
+knitr::knit_exit()
+```
+
+### Normailize data
+
+```{r}
+brain[["RNA"]]$data <- NormalizeData(brain[["RNA"]]$counts)
+#brain <- NormalizeData(brain)
+```
+
+### Split by set
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, split.by = "set")
+```
+
+
+### Split by set and Group by subclass
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, split.by = "set", group.by = "subclass")
+```
+
+### Dotplot
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain, features = HTRgenes12, split.by = "set") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+
+DotPlot(object = brain, features = HTRgenes12, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+
+DotPlot(object = brain, features = HTRgenesINT, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+# Counts per million
+
+Counts per millions of mapped reads
+
+Facs data different seq platforms
+
+patchseq - smrtSeq
+
+Facs - 10x genomics
+
+Use both as separate indications of separate quantification methods. 
+
+
+
+```{r}
+
+#brain.scaled = ScaleData(brain, split.by = "set")
+#brain.scaled = FindVariableFeatures(brain.scaled, selection.method = 'vst')
+
+#brain.scaled = RunPCA(brain.scaled, npcs = 30, verbose = FALSE)
+#brain.scaled = RunUMAP(brain.scaled, reduction = "pca", dims = 1:30, verbose = FALSE)
+
+#DimPlot(brain.scaled, reduction = "umap", group.by = "set", label = FALSE, cols=c("black","red"), shuffle=TRUE) 
+
+#DotPlot(object = brain.scaled, features = HTRgenesINT, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+
+```
+
+
+
+
+
+
+
+
+
+

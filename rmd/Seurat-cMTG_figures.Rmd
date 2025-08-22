@@ -1,0 +1,271 @@
+---
+title: "Seurat figures for off-pipeline data"
+author: "SawchukS"
+date: "2025-07-16"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      out.width = "100%",
+                      warning = FALSE,
+                      cache = TRUE)
+
+library(metap)
+library(feather)
+library(Seurat)
+library(ggplot2)
+
+mtgFolder = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/"
+patchseqFolder = "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
+
+HTRgenesINT = c(
+  "HTR1A",
+  "HTR1B",
+  "HTR1D",
+  "HTR1E",
+  "HTR1F",
+  "HTR2A",
+  "HTR2B",
+  "HTR2C",
+  "HTR4",
+  "HTR5A",
+  "HTR6",
+  "HTR7"
+)
+
+HTRgenes12 = c(
+  "HTR1A",
+  "HTR1B",
+  "HTR1D",
+  "HTR1E",
+  "HTR1F",
+  "HTR2A",
+  "HTR2B",
+  "HTR2C"
+)
+
+HTR1 = c(
+  "HTR1A",
+  "HTR1B",
+  "HTR1D",
+  "HTR1E",
+  "HTR1F"
+)
+HTR2 = c(
+  "HTR2A",
+  "HTR2B",
+  "HTR2C"
+)
+
+HTR2 = c(
+  "HTR2A",
+  "HTR2B",
+  "HTR2C"
+)
+
+HTR0 = c(
+  "HTR4",
+  "HTR5A",
+  "HTR6",
+  "HTR7"
+)
+
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+MD$Brain_Region
+
+unique(MD$Cortical_area)
+unique(cMD$Cortical_area)
+
+brain = readRDS("~/proj/proj5HT/data-raw/offPipeline_SmartSeq.rds")
+
+Smart10x = readRDS("~/proj/proj5HT/data-raw/Smart10x_Seurat.rds")
+
+cMTG = readRDS("~/proj/proj5HT/data-raw/Seurat-brain_couts-patch-log2.rds")
+
+```
+
+
+# Do a percentage feature set for an initial observation of the data.  
+```{r}
+cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
+```
+
+
+## Figures
+Combined shows nCount_RNA being far from each other
+```{r, eval = TRUE}
+VlnPlot(cMTG, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+## Violin plot
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(cMTG, features = HTRgenes12, pt.size = 0.2, ncol = 2, group.by = "subclass")
+```
+
+
+## HTR1 genes
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(cMTG, features = HTR1, pt.size = 0.2, ncol = 5, group.by = "subclass")
+```
+
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(cMTG, features = HTR0, pt.size = 0.2, ncol = 4, group.by = "subclass")
+```
+
+
+
+
+```{r}
+VlnPlot(cMTG, features = HTR2, pt.size = 0.2, ncol = 3, group.by = "subclass")
+```
+
+## Dotplot
+
+```{r}
+DotPlot(object = cMTG, features = HTRgenesINT, group.by = "subclass_label", scale = FALSE) + guides(legend_guides) + ggtitle("10x FACs omics")
+```
+
+
+
+# Loading the annotation data for the Patch-seq data
+
+```{r}
+
+```
+
+
+## Figures
+Combined shows nCount_RNA being far from each other
+```{r, eval = TRUE}
+VlnPlot(brain, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), group.by = "set", ncol = 3)
+```
+
+
+Separating by method.
+```{r, eval = TRUE}
+VlnPlot(brain, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, group.by = "subclass") + theme(legend.position = "bottom")
+```
+
+
+# Without Normalizing the data
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, group.by = "subclass")
+```
+
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTR1, pt.size = 0.2, ncol = 5, group.by = "subclass")
+```
+
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTR2, pt.size = 0.2, ncol = 3, group.by = "subclass")
+```
+
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTR0, pt.size = 0.2, ncol = 4, group.by = "subclass")
+```
+
+### Split by set and Group by subclass
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass")
+```
+
+### Dotplot
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = cMTG, features = HTRgenesINT, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+DotPlot(object = cMTG, features = HTR2, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = brain, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+#DotPlot(object = brain.list$PatchSeq, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12, eval =FALSE}
+DotPlot(object = brain, features = HTRgenesINT, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain.list$PatchSeq, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp")) + ggtitle("Patch Seq expression")
+```
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain.list$`FACs-Data`, features = HTRgenes12, group.by = "subclass") + guides(size = guide_legend(title = "% Exp")) + ggtitle("FACs expression")
+```
+
+
+
+```{r}
+knitr::knit_exit()
+```
+
+### Normailize data
+
+```{r}
+brain[["RNA"]]$data <- NormalizeData(brain[["RNA"]]$counts)
+#brain <- NormalizeData(brain)
+```
+
+### Split by set
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, split.by = "set")
+```
+
+
+### Split by set and Group by subclass
+
+```{r, fig.height=15, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, split.by = "set", group.by = "subclass")
+```
+
+### Dotplot
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain, features = HTRgenes12, split.by = "set") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+
+DotPlot(object = brain, features = HTRgenes12, split.by = "set", group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+DotPlot(object = brain, features = HTRgenesINT, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+```
+
+
+```{r, fig.height=8, fig.width=12}
+VlnPlot(brain, features = HTRgenes12, pt.size = 0.2, ncol = 2, split.by = "set", group.by = "subclass")
+DotPlot(object = brain, features = HTR1, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+
+DotPlot(object = brain, features = HTR2, group.by = "subclass") + guides(size = guide_legend(title = "% Exp"))
+
+
+```
+
+
