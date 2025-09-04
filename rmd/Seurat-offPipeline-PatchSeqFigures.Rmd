@@ -62,15 +62,22 @@ legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(t
 
 # Off-pipeline
 
+## Human off-pipeline patch-seq
+
 ```{r op-PatchSeq SeuratObjects, include=FALSE}
 hopPS = readRDS("~/proj/proj5HT/data-raw/Seurat/offPipeline-Human_PatchSeq.rds")
 table(hopPS$subclass_Corr_label)
 # Select only the temporal cortex for these data
 hopPS = subset(hopPS, subset = Cortical_area %in% c('TCx'))
+table(hopPS$subclass_Corr_label)
 #hopPS = subset(hopPS, subset = subclass_Corr_label %in% c('L5 IT','L5 ET',"L2/3 IT"))
 # Separate L6 cells from L5IT,L5ET, and L2/3IT
 # hopPS6 = subset(hopPS, subset = subclass_Corr_label %in% c('L6 IT','L6b',"L6 CT"))
+```
 
+## Macaque off-pipeline patch-seq
+
+```{r op-PatchSeq SeuratObjects, include=FALSE}
 mopPS = readRDS("~/proj/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
 # Data Descriptors
 table(mopPS$subclass_Corr_label)
@@ -88,6 +95,8 @@ table(mopPS$subclass_Corr_label)
 table(mopPS$Cortical_area)
 
 
+
+
 ```
 
 ## Describe the N for each group. 
@@ -96,8 +105,8 @@ table(mopPS$Cortical_area)
 # TODO Make figure for desciribing number of cells from each region once paired down.
 
 df = data.frame(subclass = c(mopPS$subclass_Corr_label,hopPS$subclass_Corr_label), prep = c(mopPS$species_label, hopPS$species_label))
-
 table(df$prep)
+
 
 ggplot(df, aes(x = subclass, fill = prep)) +
   geom_bar() +
@@ -141,8 +150,6 @@ grid.arrange(
 )
 ```
 
-
-
 # HTR1
 
 ### Comparison of HTR1 genes 
@@ -157,7 +164,8 @@ grid.arrange(
     scale.min = 0,
     scale.max = 100,
     cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("HTR1 genes op-Human TCx Patch-Seq"),
+  ) + guides(legend_guides) + ggtitle("HTR1 genes op-Human TCx Patch-Seq") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)),  # rotate labels),
   DotPlot(
     object = mopPS,
     features = HTR1,
@@ -166,7 +174,8 @@ grid.arrange(
     scale.min = 0,
     scale.max = 100,
     cols = c("white", "blue")
-    ) + guides(legend_guides) + ggtitle("HTR1 genes op-Macaque TCx Patch-Seq"),
+    ) + guides(legend_guides) + ggtitle("HTR1 genes op-Macaque TCx Patch-Seq") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)),  # rotate labels),
  ncol = 2
 )
 
@@ -193,125 +202,7 @@ grid.arrange(
     scale.max = 100,
     cols = c("white", "blue")
     ) + guides(legend_guides) + ggtitle("Macaque TCx 10xFACs"),
-  DotPlot(
-    object = cMTG,
-    features = HTR0,
-    group.by = "subclass_Corr_label",
-    scale = FALSE,
-    scale.min = 0,
-    scale.max = 100,
-    cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("Chimp TCx 10xFACs"),
-  DotPlot(
-    object = gMTG,
-    features = HTR0,
-    group.by = "subclass_Corr_label",
-    scale = FALSE,
-    scale.min = 0,
-    scale.max = 100,
-    cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("Gorilla TCx 10xFACs"),
-  ncol = 4
+   ncol = 2
 )
 
 ```
-
-
-
-```{r}
-grid.arrange(
-  DotPlot(
-    object = hopPS,
-    features = HTR2,
-    group.by = "subclass_Corr_label",
-    scale = FALSE,
-    cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("Human TCx 10x"),
-  DotPlot(
-    object = macMTG,
-    features = HTR2,
-    group.by = "subclass_Corr_label",
-    scale = FALSE,
-    cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("Macaque TCx 10x"),
-  DotPlot(
-    object = cMTG,
-    features = HTR2,
-    group.by = "subclass_Corr_label",
-    scale = FALSE,
-    cols = c("white", "blue")
-  ) + guides(legend_guides) + ggtitle("Chimp TCx 10x"),
-  ncol = 3
-)
-```
-
-
-
-```{r, fig.height=8, fig.width=10, eval =FALSE}
-DotPlot(object = brain, features = HTR1, group.by = "subclass", scale = FALSE) + guides(legend_guides)
-```
-
-```{r, fig.height=8, fig.width=6, eval =FALSE}
-DotPlot(object = brain, features = HTR2, group.by = "subclass", scale = FALSE) + guides(legend_guides)
-```
-
-```{r, fig.height=8, fig.width=8, eval =FALSE}
-DotPlot(object = brain, features = HTR0, group.by = "subclass", scale = FALSE) + guides(legend_guides)
-```
-
-## Plot Cluster types 
-
-### L2/3 IT cluster types
-
-```{r}
-VlnPlot(object = subset(brain, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster")
-```
-
-```{r}
-
-grid.arrange(
-DotPlot(object = subset(brain, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID Smart-Seq Patch-Seq"),
-DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID fo 10x-FACs data"),
-nrow = 2
-)
-```
-
-```{r}
-
-brain2 = subset(brain, subset = Cortical_area %in% "TCx")
-
-grid.arrange(
-DotPlot(object = subset(brain2, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID Smart-Seq Patch-Seq"),
-DotPlot(object = subset(brain2, subset = subclass %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID Smart-Seq Patch-Seq"),
-#DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID fo 10x-FACs data"),
-#DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L2/3 IT"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L2/3 Cluster ID fo 10x-FACs data"),
-nrow = 2
-)
-```
-
-### L5 ET cluster types
-
-```{r}
-VlnPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster")
-```
-
-```{r}
-DotPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides)
-```
-
-```{r}
-
-grid.arrange(
-DotPlot(object = subset(cMTG, subset = subclass_Corr_label %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID fo 10x-FACs data"),
-DotPlot(object = subset(brain, subset = subclass %in% "L5 ET"), features = HTRgenesINT, group.by = "cluster", scale = FALSE) + guides(legend_guides) + ggtitle("L5 ET Cluster ID Smart-Seq Patch-Seq"),
-nrow = 2
-)
-```
-
-## Violin plots Without Normalizing the data
-```{r, fig.height=15, fig.width=12}
-#VlnPlot(mopPS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
-#VlnPlot(hopPS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
-#VlnPlot(hePS, features = HTRgenesINT, pt.size = 0.2, ncol = 4, group.by = "subclass_Corr_label", same.y.lims = TRUE)
-```
-

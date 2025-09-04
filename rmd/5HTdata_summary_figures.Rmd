@@ -49,6 +49,8 @@ ggplot(output_cellsMD, aes(x = Species, fill = Species)) +
   geom_bar() +
   theme_minimal()
 
+table(output_cellsMD$Species)
+
 ggplot(output_cellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
   geom_bar() +
   facet_wrap(~Species, nrow = 3) +
@@ -89,6 +91,8 @@ ggplot(puffCellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
   geom_bar() +
   facet_wrap(~Species, nrow = 4) +
   theme_minimal()
+
+puffNA = puffCellsMD[which(is.na(puffCellsMD$predicted_subclass)),]
 
 ```
 
@@ -144,15 +148,19 @@ ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
 # Filter out and build basic figures for each
 
 ```{r}
-output_cellsMD = output_cellsMD %>% 
+output_cellsMD_fltr = output_cellsMD %>% 
   dplyr::filter(Species %in% c("Human", "M.nemestrina")) %>% 
   dplyr::filter(class_Corr %in% c("exc", "Glutamatergic")) %>% 
   dplyr::filter(Cortical_area %in% c("MCx", "TCx"))
 
-puffCellsMD = puffCellsMD %>% 
+table(output_cellsMD$Species)
+
+puffCellsMD_fltr = puffCellsMD %>% 
   dplyr::filter(Species %in% c("Human", "M.nemestrina")) %>% 
   dplyr::filter(class_Corr %in% c("exc", "Glutamatergic")) %>% # %>% 
   dplyr::filter(Cortical_area %in% c("MCx", "TCx"))# %>% 
+
+table(puffCellsMD$Species)
 ```
 
 ```{r}
@@ -172,7 +180,35 @@ ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
 
 ```{r}
 
-need_analysis = puffCellsMD[!puffCellsMD$cell_name %in% output_cellsMD$cell_name,]
+cells_for_analysis = unique(puffPro$cell_name)[!unique(puffPro$cell_name) %in% unique(output_cellsMD$cell_name)]
+
+unique(output_cellsMD$cell_name)
+
+tstCell = "H21.03.304.11.04.02.02"
+
+tstCell %in% cells_for_analysis
+
+tst = puffPro[puffPro$cell_name %in% cells_for_analysis,]
+identical(unique(tst$cell_name), cells_for_analysis)
+
+tst2 = MD[MD$cell_name %in% cells_for_analysis,]
+
+
+unique(tst$cell_name)
+
+
+
+
+unique(puffPro$cell_name)[unique(puffPro$cell_name) %in% unique(output_cellsMD$cell_name)]
+
+
+check_for_analysis = puffCellsMD[!puffCellsMD$cell_name %in% output_cellsMD$cell_name,]
+
+
+
+
+
+table(need_analysis$Species)
 
 write.csv(need_analysis, "~/proj/proj5HT/den/serotonin/Data/50sPuffProtocols_to_add_to_analysis.csv")
 
@@ -213,9 +249,6 @@ ncol = 3
 )
 
 ```
-
-
-
 
 # Already analyzed cell compile 
 
