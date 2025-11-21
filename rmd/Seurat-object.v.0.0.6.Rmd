@@ -19,8 +19,8 @@ library(feather)
 library(Seurat)
 library(ggplot2)
 
-mtgFolder = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/"
-patchseqFolder = "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
+mtgFolder = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
+patchseqFolder = "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
 
 HTRgenesINT = c(
   "HTR1A",
@@ -117,18 +117,18 @@ colnames(cMTG)
 identical(seq(1,length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))
 
 ###
-#write_feather(cMTG, "~/proj/proj5HT/data-raw/L6L5L23_cMTG.feather")
-#saveRDS(cMTG, "~/proj/proj5HT/data-raw/L6L5L23_cMTG.rds")
-#saveRDS(gene, "~/proj/proj5HT/data-raw/10xgenes.rds")
+#write_feather(cMTG, "~/proj5HT/data-raw/L6L5L23_cMTG.feather")
+#saveRDS(cMTG, "~/proj5HT/data-raw/L6L5L23_cMTG.rds")
+#saveRDS(gene, "~/proj5HT/data-raw/10xgenes.rds")
 ```
 
 
 ```{r 10x Counts, eval = FALSE}
-cMTG = readRDS("~/proj/proj5HT/data-raw/L6L5L23_cMTG.rds")
-#cMTG<- read_feather("~/proj/proj5HT/data-raw/L6L5L23_cMTG.feather")
+cMTG = readRDS("~/proj5HT/data-raw/L6L5L23_cMTG.rds")
+#cMTG<- read_feather("~/proj5HT/data-raw/L6L5L23_cMTG.feather")
 
 
-#gene = readRDS("~/proj/proj5HT/data-raw/10xgenes.rds")
+#gene = readRDS("~/proj5HT/data-raw/10xgenes.rds")
 
 cMTG = as.data.frame(cMTG)
 rownames(cMTG)
@@ -157,7 +157,7 @@ rownames(brain.metadata.cMTG) <- colnames(brain.cMTG)
 ## Construct data set lists
 brain.cMTG <- CreateSeuratObject(counts = cMTG, meta.data = brain.metadata.cMTG, project = "5HTcMTG")
 
-saveRDS(brain.cMTG, "~/proj/proj5HT/data-raw/Seurat-brain_cMTG_counts-patch-log2.rds")
+saveRDS(brain.cMTG, "~/proj5HT/data-raw/Seurat-brain_cMTG_counts-patch-log2.rds")
 ```
 
 
@@ -265,8 +265,8 @@ rownames(dPatch)
 #### Dp a log transformation of the data object
 dPatch = log2(dPatch+1)
 
-saveRDS(dPatch, "~/proj/proj5HT/data-raw/dPatch_counts-patch-log2.rds")
-saveRDS(sMD, "~/proj/proj5HT/data-raw/sMD.rds")
+saveRDS(dPatch, "~/proj5HT/data-raw/dPatch_counts-patch-log2.rds")
+saveRDS(sMD, "~/proj5HT/data-raw/sMD.rds")
 
 ```
 
@@ -283,7 +283,7 @@ brain.metadata =  data.frame(
 rownames(brain.metadata) <- colnames(brain.data)
 brain <- CreateSeuratObject(counts = brain.data, meta.data = brain.metadata, project = "5HTdPatch")
 
-saveRDS(brain, "~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+saveRDS(brain, "~/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
 
 
 ```
@@ -292,7 +292,7 @@ saveRDS(brain, "~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rd
 # Transformed Seurat object
 Load transformed object
 ```{r}
-#brain = readRDS("~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+#brain = readRDS("~/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
 
 #brain = SCTransform(brain, verbose = FALSE)
 #brain.list <- SplitObject(object = brain, split.by = "set")

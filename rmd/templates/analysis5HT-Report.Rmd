@@ -1,0 +1,71 @@
+---
+title: "Oscillations Report"
+output: html_document
+date: ""
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, echo=FALSE}
+
+library(ggplot2)
+library(projHCT)
+library(knitr)
+library(nphys)
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  cache=TRUE,
+  comment = "#>",
+  echo=FALSE,
+  warning = FALSE,
+  fig.align = "center"
+  )
+
+#x = projHCT::loadHCT("QN24.26.017.12.15.02.02")
+
+
+```
+  
+
+```{r echo=FALSE}
+print(x$md$cell_name)
+print(x$md$User)
+print(x$md$slice_type)
+print(x$md$Brain_Region)
+print(x$md$predicted_subclass)
+print(unique(x$ana$osc$drug))
+
+```
+
+
+```{r, echo = FALSE, warning=FALSE, results='hide', fig.width=8.5, fig.height=9}
+
+source("~/projHCT/R/hctPlot_osc.R")
+
+x = srt
+
+f = x$dfs$spikeTTL
+
+sapply(x$dfs$spikeTTL, function(f){
+
+  df = f$spike_puff_output
+
+  df %>% mutate(x_bin = floor(time / 5) * 5) %>%
+    group_by(x_bin, cell_name, assigned_subclass) %>%
+    summarise(y = mean(percent_change), mean_y = mean(percent_change), sd_y = sd(percent_change), .groups = "drop") %>%
+    ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
+    geom_line() +
+    geom_ribbon(aes(x = x_bin, ymin = mean_y - sd_y, ymax = mean_y + sd_y),
+              fill = "lightblue", alpha = 0.2) +
+    #geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
+    facet_wrap(~assigned_subclass) +
+    ylim(0,NA) +
+    ylab("Time (s)") +
+    xlim(-30, 100) +
+    theme_minimal() +
+    theme(legend.position = "none")
+
+  })
+
+```

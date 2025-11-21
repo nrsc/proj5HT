@@ -63,7 +63,7 @@ legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(t
         Performance depends on the quality of markers at each decision split.
 
 ```{r Human all-PatchSeq SeuratObjects, include=FALSE}
-hePS = readRDS("~/proj/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
+hePS = readRDS("~/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
 table(hePS$subclass_Corr_label)
 table(hePS$subclass_Tree_label)
 table(hePS$Region_label)
@@ -103,7 +103,7 @@ ggplot(hePS@meta.data, aes(x = score.Tree_label, fill = pipe_origin, colour = su
 
 
 ```{r Macaque all-PatchSeq SeuratObjects, include=FALSE}
-mePS = readRDS("~/proj/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
+mePS = readRDS("~/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
 table(mePS$subclass_Corr_label)
 table(mePS$subclass_Tree_label)
 table(mePS$Region_label)

@@ -1,375 +1,158 @@
+### Project looper
 library(dplyr)
 library(tidyr)
+library(nphys)
+library(projHCT)
+library(proj5HT)
 
-in_range <- function(x, lower, upper, inclusive = TRUE) {
-  if (inclusive) {
-    x >= lower & x <= upper
-  } else {
-    x > lower & x < upper
-  }
-}
-
-### Script to present output from Brians python analysis
+#### Setup ####
 MD = projHCT::sheets$MD
-cells = list.files("den/serotonin/output/")
-cell_json = list.files("den/serotonin/output/", recursive = TRUE, full.names = TRUE, pattern = ".json")
-merged_metadata = read.csv("den/serotonin/Data/merged_metadata.csv")
+
+
+
+#sheets = projHCT::sheets$files$nnest_files
+sh5HT = sheets5HT()
+#sh5HT = proj5HT::sh5HT
+
+# cells already added to rookery
+cells = sh5HT$cells
+# macaque user input for experiments
+sMdta = sh5HT$mUI
 output_cellsMD = MD[MD$cell_name %in% cells,]
-#length(output_cellsMD$cell_name)
+#cells = grep("QF25.26.022",cells, value = TRUE)
 
-#which
-unique(merged_metadata$cell_name) %in% cells
-output_cellsMD$cell_name %in% cells
-length(output_cellsMD$cell_name %in% cells)
+#lf = list.files("rookery")
 
-i = cells[12]
-
-i = "QN25.26.003.12.04.02" #Check appropriate labeling of
-
-i = "H21.03.309.11.06.01.01"
-i = "H22.03.301.11.09.01.03"
-
-
-which(cells == i)
-cells = cells[-40]
-cells[40]
-
+#i = cells[10]
+#### Build ####
 # Want to build baseline appreciating function
-#[30:length(cells)]
-for(i in cells){
+#MD[grep(i, MD$cell_name),]
+
+update_cells = sh5HT$mUI$cell_name[!sh5HT$mUI$cell_name %in% sh5HT$cells]
+
+i = "QF25.26.023.19.06.03"
+i = "QF25.26.016.11.01.02"
+
+
+i = cells[1]
+cells[21]
+which(cells == "QN25.26.017.11.02.02")
+which(cells == i)
+which(update_cells == i)
+
+i = update_cells[4]
+
+for(i in update_cells){
   print(i)
 
-  srt = nnest5HT(i)
+  #srt = nnest5HT(i)
+  srt = projHCT::loadHCT(i, tag = "-srt.rds")
 
-  srt$files$nnest
+  # if (!is.null(srt)) {
+  # srt = nnest5HT(srt)
+  # }
 
-  iMD = MD[grep(i, MD$cell_name),]
+  if (is.null(srt)) {
+      srt = nnest5HT(i)
+    if(!file.exists(srt$files$hct_nnest))
+      srt = projHCT::nnestHCT(i)
+      srt = nnest5HT(i)
+  }
+  if(!is.list(srt)){
+    next
 
-
-  iMerged = merged_metadata[grep(i, merged_metadata$cell_name),]
-  #srt = loadHCT(i)
-  #smry = srt$exp$smry
-
-  jfile = cell_json[grep(i, cell_json)]
-  jlist = jsonlite::fromJSON(jfile)
-  # If length of spikes for analysis is greater that 1
-  if(length(jlist) > 1){
-    spike_puff_sweeps = iMerged[which(iMerged$stimulus_description == "spike_puff"), "wrapped_sweeps"]
-    spike_puff_sweeps = gsub("\\[|\\]", "", spike_puff_sweeps)
-    spike_puff_sweeps = as.numeric(strsplit(spike_puff_sweeps, ",")[[1]])
-
-    tst = lapply(1:length(jlist), function(x){
-      jlist[[x]]$sweeps_analyzed %in% spike_puff_sweeps
-    })
-
-    n = which(sapply(tst, any))
-
-  }else{
-    n = 1
   }
 
-  fp = data.frame(epoch_t = jlist[[n]]$spike_times, rate = jlist[[n]]$Instantaneous_frequency)
+  srt$cell
+  srt$dfs$puff = NULL
 
+  srt$dfs$NaAv = NULL
 
-# Assessment of stimulus trace ----------------------------------------------------
-  bin_width = 1
-
-  ## Fix to any issues where analysis cuts off because no spiking happens after puff.
-  maxBin = max(fp$epoch_t)
-  if(maxBin < bin_width)
-    maxBin = 50
-
-  lvls = levels(cut(fp$epoch_t, breaks = seq(0, maxBin, by = bin_width), right = FALSE))
-  df0 = data.frame(bin = lvls)
-
- out1 = fp %>% dplyr::mutate(bin = cut(fp$epoch_t, breaks = seq(0, maxBin, by = bin_width), right = FALSE, na.rm = FALSE)) %>%
-    group_by(bin) %>%
-    summarise(count = n(),
-              rate = count / bin_width,
-              .groups = "keep") %>%
-    as.data.frame(.)
-
-  out1 = merge(out1, df0, by = "bin", all = TRUE)
-
-  if(nrow(out1) > 1 && is.na(out1$bin[nrow(out1)]))
-    out1 = out1[-nrow(out1),]
-
-  out1 <- out1 %>% mutate(across(everything(), ~tidyr::replace_na(.x, 0)))
-
-  out1$t = seq(0, length.out = length(out1$bin), by = bin_width)
-
-  pCh = mean(as.numeric(out1[which(out1$t < 5), "rate"]))
-
-  out1$percent_change = out1$rate/pCh*100
-  out1$protocol = "Stimulus"
-
-  if(max(out1$percent_change) <= 200){
-    ymax = 200
-  }else{
-    ymax = max(out1$percent_change)
-  }
-
-  #$gg = ggplot(df_binned, aes(x = t, y = percent_change)) +
-  # gg = out1 %>% mutate(x_bin = floor(t / 5) * 5) %>%
-  #   group_by(x_bin) %>%
-  #   summarise(y = mean(percent_change), .groups = "drop") %>%
-  #   ggplot(aes(x_bin, y)) +
-  #     geom_point() +
-  #     ggtitle(paste(iMD$cell_name, iMD$predicted_subclass, sep = "--")) +
-  #     theme_minimal()
-
-
-  # gg = ggplot(df_binned, aes(x_bin, y)) +
-  #   geom_point() +
-  #   ylim(0, ymax) +
-  #   ggtitle(paste(iMD$cell_name, iMD$predicted_subclass, sep = "--")) +
-  #   theme_minimal()
-
-  #plot(gg)
-
-  #ggsave(paste0("figs/pch5HT/", iMD$cell_name, "-stim5HT_pchPlot.png"), plot = gg)
+  #file.exists(srt$files$nwb)
 
 
 
-# Baseline section --------------------------------------------------------
+  #srt = spikePuff5HT(srt)
+  #srt$dfs$spikeTTL$selected_MD
 
-  if("baseline_spike_puff" %in% iMerged$stimulus_description) {
-    bl_puff_sweeps = iMerged[which(iMerged$stimulus_description == "baseline_spike_puff"), "wrapped_sweeps"]
-    bl_puff_sweeps = gsub("\\[|\\]", "", bl_puff_sweeps)
-    bl_puff_sweeps = as.numeric(strsplit(bl_puff_sweeps, ",")[[1]])
+  #srt = ketWashIn(srt)
 
-    sa = jlist[[n]]$sweeps_analyzed[1]
-    bin_width = 1
+  #NaAv = NaAvail5HT(srt, show_plot = TRUE, return_dfs = TRUE)
+  #srt$dfs$NaAv = NaAvail5HT(srt, show_plot = TRUE, return_dfs = TRUE)
 
-    if (in_range(bl_puff_sweeps, sa - 5, sa, inclusive = FALSE)) {
-      sN = bl_puff_sweeps + 1
-      nwb = extractNWB(iMD$nwb_file, sweeps = sN)
-      #nwb$sampling_rate[sN]
-      #plot(nwb$sweeps, type = "l")
-      fpbl = APanalysis(nwb$sweeps, rate = nwb$sampling_rate[sN])
-      fpbl = as.data.frame(fpbl)
+  #if(file.exists(file.path(srt$rd, paste0(srt$cell, "-srtPuff.csv")))){
+  #  srt$files$exp_dfs$srtPuff = file.path(srt$rd, paste0(srt$cell, "-srtPuff.csv"))
+  #}
+  #if(file.exists(file.path(srt$rd, paste0(srt$cell, "-srtKetWash.csv")))){
+  #  srt$files$exp_dfs$ketWash = file.path(srt$rd, paste0(srt$cell, "-srtKetWash.csv"))
+  #}
 
-      out2 = fpbl %>% dplyr::mutate(bin = cut(
-        -fpbl$epoch_t,
-        breaks = seq(floor(-max(fpbl$epoch_t)), 0, by = bin_width),
-        right = TRUE,
-        na.rm = FALSE
-      )) %>%
-        group_by(bin) %>%
-        summarise(count = n(), rate = count / bin_width) %>%
-        as.data.frame(.)
+  #askYesNo()
 
-      out2$t = seq(-1, by = -bin_width, length.out = nrow(out2))
-      out2$percent_change = out2$rate / pCh * 100
+  saveRDS(srt, file = srt$files$nnest)
 
-      out2$protocol = "Baseline"
-
-      out2 %>% mutate(x_bin = floor(t / 5) * 5) %>%
-        group_by(x_bin) %>%
-        summarise(y = mean(percent_change), .groups = "drop") %>%
-        ggplot(aes(x_bin, y)) +
-        geom_point() +
-        ylim(0, ymax) +
-        ggtitle(paste(iMD$cell_name, iMD$predicted_subclass, sep = "--")) +
-        theme_minimal()
-
-      df = rbind(out2, out1)
-
-      # tst0 = df %>% mutate(x_bin = floor(t / 5) * 5) %>%
-      #   group_by(x_bin, protocol) %>%
-      #   summarise(y = mean(percent_change), .groups = "drop")# %>%
-
-      gg2 = df %>% mutate(x_bin = floor(t / 5) * 5) %>%
-        group_by(x_bin, protocol) %>%
-        summarise(y = mean(percent_change), .groups = "drop") %>%
-        ggplot(aes(x_bin, y, colour = protocol)) +
-        geom_point() +
-        ylab("% Change") +
-        xlab("Time(s)") +
-        ylim(0, ymax) +
-        ggtitle(paste(iMD$cell_name, iMD$predicted_subclass, sep = "--")) +
-        theme_minimal()
-
-      plot(gg2)
-
-      ggsave(paste0("figs/pch5HT/", iMD$cell_name, "-blstim5HT_pchPlot.png"),
-             plot = gg2)
-
-    }
-  }
-
-# Build dataframe
-df$cell_name = iMD$cell_name
-df$predicted_subclass = iMD$predicted_subclass
-df$subclass_Corr = iMD$subclass_Corr
-df$subclass_Tree = iMD$subclass_Tree
-df$Species = iMD$Species
-df$Cortical_area = iMD$Cortical_area
-
-  if(!file.exists(file.path("rookery", iMD$cell_name))){
-    dir.create(file.path("rookery", iMD$cell_name))
-  }
-
-  write.csv(df, file.path("rookery", iMD$cell_name, paste0(iMD$cell_name, "-blStim-50sPuff.csv")))
 
 }
-
-
 
 # Assemble complete dataframe ---------------------------------------------
 
-lf = list.files("rookery", pattern = "blStim-50sPuff.csv", recursive = TRUE, full.names = TRUE)
+comp5HT = compile5HT()
 
-lfout = lapply(lf, function(l) {
-  print(l)
-  #r = read.csv(l)
-  r = readr::read_csv(l, show_col_types = FALSE)
-  if(nrow(r)==0){
-    return(NA)
-  }
-  return(r)
-}) %>% .[!is.na(.)] %>% bind_rows(.)
+srtPlots = function(x){
 
-lfout$...1 = NULL
-lfout$subclass_Corr = NULL
-lfout$cell_name = lfout$cell
+  tst = srt$dfs$spikeTTL$spike_puff_output
+  plot(tst$time, tst$percent_change, main = paste(srt$dfs$spikeTTL$selected_MD$cell_name, srt$dfs$spikeTTL$iMerged$predicted[!is.na(srt$dfs$spikeTTL$iMerged$predicted)]), xlab = "time", ylab = "% Change")
 
-lfout =lfout %>% mutate(Species = if_else(Species == "Human", "Human", "Macaque"))
-lfout =lfout %>% mutate(class_origin = if_else(subclass_Tree == "none", "classifier", "omics"))
-
-lfout <- lfout %>%
-  left_join(
-    output_cellsMD %>% select(cell_name, Cortical_area),
-    by = "cell_name"
-  )
-unique(lfout$Cortical_area)
-lfout =lfout %>% mutate(Cortical_area = if_else(Cortical_area == "MTG", "TCx", Cortical_area))
-unique(lfout$Cortical_area)
-unique(lfout$cell_name) %in% unique(output_cellsMD$cell_name)
-
-# Plots -------------------------------------------------------------------
-## All cell types
-# ggplot(lfout, aes(x = t, y = percent_change, colour = cell)) +
-#   geom_line() +
-#   facet_wrap(~predicted_subclass) +
-#   ylim(0, max(lfout$percent_change)) +
-#   xlim(0, 50) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
-#
-# ggplot(subset(lfout, predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET")), aes(x = t, y = percent_change, colour = cell)) +
-#   geom_line() +
-#   facet_wrap(~predicted_subclass, nrow = 3, scales = "free") +
-#   ggtitle("Pooled Species") +
-#   xlim(-50, 120) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
+  NaAvail5HT(srt, show_plot = TRUE, return_dfs = FALSE)
 
 
-### Human vs Macaque % change
-# ggplot(subset(lfout, predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Species %in% c("Human", "Macaque")), aes(x = t, y = percent_change, colour = cell)) +
-#   geom_line() +
-#   #facet_wrap(~predicted_subclass, nrow = 3, scales = "free") +
-#   facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-#   ggtitle("Human vs Macaque") +
-#   #ylim(0, 375) +
-#   xlim(0, 50) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
+  df_na = srt$dfs$NaAv$df_na
+  df_spike= srt$dfs$NaAv$df_spike
 
+  ggplot() +
+    # sodium availability background
+    geom_line(
+      data = df_na,
+      aes(x = time, y = a, color = cond),
+      linewidth = 0.6, alpha = 0.7
+    ) +
+    # spike %-change points (rescaled)
+    geom_point(
+      data = df_spike,
+      aes(x = time, y = percent_scaled),
+      shape = 21, fill = "black", color = "white",
+      size = 2, alpha = 0.9
+    ) +
+    # vertical marker for drug onset
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+    annotate("text", x = 0, y = 1.02, label = "Drug onset", hjust = -0.1, size = 4) +
+    labs(
+      title = paste(
+        "Continuous Sodium Availability and Spike % Change —",
+        srt$dfs$spikeTTL$selected_MD$cell_name
+      ),
+      x = "Time (s, 0 = drug onset)",
+      y = "Sodium Availability a(t)"
+    ) +
+    scale_y_continuous(
+      name = "Sodium Availability a(t)",
+      sec.axis = sec_axis(
+        trans = ~ . * (max(df_spike$percent_change, na.rm = TRUE) -
+                         min(df_spike$percent_change, na.rm = TRUE)) +
+          min(df_spike$percent_change, na.rm = TRUE),
+        name = "% Change"
+      )
+    ) +
+    scale_color_manual(values = c("Baseline" = "salmon", "Drug" = "cyan3")) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.position = "right",
+      plot.title = element_text(face = "bold")
+    )
 
-# Predicted Subclass plots ------------------------------------------------
-lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-  mutate(x_bin = floor(t / 5) * 5) %>%
-  group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-  summarise(y = mean(percent_change), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-  #ggplot(., aes(x = t, y = rate, colour = cell)) +
-  geom_line() +
-  geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-  facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-  ggtitle("% change grouped by predicted_subclass") +
-  ylim(0, 300) +
-  ylab("Time (s)") +
-  #xlim(-50, 120) +
-  xlim(-25, 60) +
-  theme_minimal() +
-  theme(legend.position = "none")
-
-
-lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-  mutate(x_bin = floor(t / 5) * 5) %>%
-  group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-  summarise(y = mean(rate), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-  #ggplot(., aes(x = t, y = rate, colour = cell)) +
-  geom_line() +
-  ggtitle("Firing rate grouped by predicted_subclass") +
-  geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-  facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-  #ylim(0, 300) +
-  ylab("Time (s)") +
-  xlim(-50, 120) +
-  theme_minimal() +
-  theme(legend.position = "none")
+  plot(gg)
 
 
 
-# Subclass_Tree label plots -----------------------------------------------
-
-#### Human vs Macacque subclass_Tree % Change
-lfout %>% subset(., subclass_Tree %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-  mutate(x_bin = floor(t / 5) * 5) %>%
-  group_by(x_bin, protocol, cell, subclass_Tree, Species) %>%
-  summarise(y = mean(percent_change), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-  #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
-  geom_line() +
-  geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-  facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-  ylim(0, 300) +
-  ylab("Time (s)") +
-  xlim(-50, 120) +
-  theme_minimal() +
-  theme(legend.position = "none")
-
-
-
-#### Human vs Macacque subclass_Tree rate
-lfout %>% subset(., subclass_Tree %in% c("L2/3_IT", "L5_IT", "L5_ET")) %>%
-  mutate(x_bin = floor(t / 5) * 5) %>%
-  group_by(x_bin, protocol, cell, subclass_Tree, Species) %>%
-  summarise(y = mean(rate), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-  #ggplot(., aes(x = t, y = rate, colour = cell)) +
-  geom_line() +
-  geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-  facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-  #ylim(0, 300) +
-  ylab("Time (s)") +
-  xlim(-50, 120) +
-  theme_minimal() +
-  theme(legend.position = "none")
-
-
-
-# archive -----------------------------------------------------------------
-
-lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-  mutate(x_bin = floor(t / 5) * 5) %>%
-  group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-  summarise(y = mean(percent_change), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-  geom_line() +
-  #facet_wrap( ~ predicted_subclass, nrow = 3, scales = "free") +
-  facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-  ylim(0, 300) +
-  ylab("Time (s)") +
-  xlim(-25, 120) +
-  theme_minimal() +
-  theme(legend.position = "none")
-
-
-
-
-
+}

@@ -33,11 +33,11 @@ HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
 legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
 
 
-brain = readRDS("~/proj/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
-hMTG = readRDS("~/proj/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds")
-cMTG = readRDS("~/proj/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds")
-macMTG = readRDS("~/proj/proj5HT/data-raw/Seurat/MacaqueMTG_10xFACs.rds")
-gMTG = readRDS("~/proj/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds")
+brain = readRDS("~/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
+hMTG = readRDS("~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds")
+cMTG = readRDS("~/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds")
+macMTG = readRDS("~/proj5HT/data-raw/Seurat/MacaqueMTG_10xFACs.rds")
+gMTG = readRDS("~/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds")
 
 # Used aMTG for the metadata. Need to be considerate of naming of variables
 cMTG$subclass = cMTG$subclass_label

@@ -19,8 +19,8 @@ library(feather)
 library(Seurat)
 library(ggplot2)
 
-mtgFolder = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/"
-patchseqFolder = "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
+mtgFolder = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
+patchseqFolder = "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
 
 HTRgenesINT = c(
   "HTR1A",
@@ -83,11 +83,11 @@ MD$Brain_Region
 unique(MD$Cortical_area)
 unique(cMD$Cortical_area)
 
-brain = readRDS("~/proj/proj5HT/data-raw/offPipeline_SmartSeq.rds")
+brain = readRDS("~/proj5HT/data-raw/offPipeline_SmartSeq.rds")
 
-Smart10x = readRDS("~/proj/proj5HT/data-raw/Smart10x_Seurat.rds")
+Smart10x = readRDS("~/proj5HT/data-raw/Smart10x_Seurat.rds")
 
-cMTG = readRDS("~/proj/proj5HT/data-raw/Seurat-brain_couts-patch-log2.rds")
+cMTG = readRDS("~/proj5HT/data-raw/Seurat-brain_couts-patch-log2.rds")
 
 ```
 

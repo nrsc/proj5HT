@@ -32,8 +32,8 @@ HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
 
 legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
 
-brain = readRDS("~/proj/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
-hMTG = readRDS("~/proj/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
+brain = readRDS("~/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
+hMTG = readRDS("~/proj5HT/data-raw/Seurat/offPipeline-Macaque_SmartSeq.rds")
 brain[["percent.mt"]] <- PercentageFeatureSet(brain, pattern = "^MT*")
 
 brain = subset(brain.complete, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))

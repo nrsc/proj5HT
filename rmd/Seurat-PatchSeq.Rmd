@@ -19,8 +19,8 @@ library(feather)
 library(Seurat)
 library(ggplot2)
 
-mtgFolder = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/"
-patchseqFolder = "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
+mtgFolder = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
+patchseqFolder = "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/"
 
 MD = projHCT::sheets$MD
 cMD = projHCT::sheets$cleanMD
@@ -115,8 +115,8 @@ rownames(dPatch)
 #### Dp a log transformation of the data object
 dPatch = log2(dPatch+1)
 
-saveRDS(dPatch, "~/proj/proj5HT/data-raw/dPatch_counts-patch-log2.rds")
-saveRDS(sMD, "~/proj/proj5HT/data-raw/sMD.rds")
+saveRDS(dPatch, "~/proj5HT/data-raw/dPatch_counts-patch-log2.rds")
+saveRDS(sMD, "~/proj5HT/data-raw/sMD.rds")
 
 ```
 
@@ -140,7 +140,7 @@ sMD$percent_reads_aligned_to_introns_label
 rownames(brain.metadata) <- colnames(brain.data)
 brain <- CreateSeuratObject(counts = brain.data, meta.data = brain.metadata, project = "5HTdPatch")
 
-saveRDS(brain, "~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+saveRDS(brain, "~/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
 
 
 ```
@@ -149,7 +149,7 @@ saveRDS(brain, "~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rd
 # Transformed Seurat object
 Load transformed object
 ```{r}
-#brain = readRDS("~/proj/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
+#brain = readRDS("~/proj5HT/data-raw/Seurat-brain_dPatch_counts-patch-log2.rds")
 
 #brain = SCTransform(brain, verbose = FALSE)
 #brain.list <- SplitObject(object = brain, split.by = "set")

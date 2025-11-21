@@ -1,0 +1,214 @@
+---
+title: "AHP_types"
+output: html_document
+date: "2023-10-24"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+
+library(projHCT)
+library(nphys)
+library(proj5HT)
+
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  results = "hide",
+  out.width = '100%', 
+  cache = TRUE
+  )
+
+sh5HT = sheets5HT()
+
+
+
+```
+
+Adding to this document any time a unique AHP is observed
+
+# QN22.26.022.4A.14.01
+
+### This cell shows an ahp with a brief shelf immediately after the falling phase of the ap
+
+```{r}
+hct = loadHCT("QN22.26.022.4A.14.01")
+
+sweep_name = "data_00057_AD0"
+
+sweep = extractHCT(hct$files$nwb, sweep = sweep_name, slim = TRUE)
+
+par(mfrow = c(1,1))
+plot(sweep, type = "l")
+
+epochs = epochStimulus(hct$files$nwb, s = sweep_name)
+
+rate = hct$exp$sampling_rate[[grep(sweep_name, names(hct$exp$stimulus_description))]]
+
+fp = APanalysis(sweep, rate = hct$exp$sampling_rate[[sweep_name]], eONi = epochs$eONi, eOFFi = epochs$eOFFi)
+
+xf = convertIndex(sweep, rate)
+```
+
+```{r}
+ap = 2
+
+par(mfrow = c(1,4))
+plot(xf[fp[ap,3]:(fp[ap,4])], sweep[fp[ap,3]:(fp[ap,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+100)], sweep[fp[ap,3]:(fp[ap,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+1000)], sweep[fp[ap,3]:(fp[ap,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+10000)],sweep[fp[ap,3]:(fp[ap,4]+10000)], type = "l", ylab = "mV", xlab = "Time (S)")
+```
+
+
+```{r}
+
+isi_seg = sweep[fp[ap,"apOFFi"]:fp[ap+1,"apONi"]]
+par(mfrow = c(1,1))
+
+#plot(ap_seg, type = "l")
+plot(convertIndex(isi_seg, rate), isi_seg, type = "l")
+
+
+dvdt_mV(isi_seg, rate)
+```
+
+# Q20.26.004.12.02.01
+
+### Burst spike type. L5 ET
+AHP has sharp and rapid negative hyperpolarization before a longer ahp
+
+```{r, results='hide'}
+hct = loadHCT("Q20.26.004.12.02.01")
+sweep_name = "data_00052_AD0"
+
+# if(!file.exists(hct$files$nwb)){
+# hct$files$nwb = grep(hct$cell, sheets$files$nwb_files, value = TRUE)
+# saveRDS(hct$cell, hct$files$nnest)
+# }
+sweep = extractHCT(grep(hct$cell, sheets$files$nwb_files, value = TRUE), sweep = sweep_name, slim = TRUE)
+  
+par(mfrow = c(1,1))
+
+plot(sweep, type = "l")
+epochs = epochStimulus(hct$files$nwb, s = sweep_name)
+rate = hct$exp$sampling_rate[[grep(sweep_name, names(hct$exp$stimulus_description))]]
+fp = APanalysis(sweep, rate = hct$exp$sampling_rate[[sweep_name]], eONi = epochs$eONi, eOFFi = epochs$eOFFi)
+
+xf = as.numeric(convertIndex(sweep, rate))
+
+
+```
+ 
+
+```{r, results='hide'}
+ap = 4
+
+par(mfrow = c(1,4))
+plot(xf[fp[ap,3]:(fp[ap,4])], sweep[fp[ap,3]:(fp[ap,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+100)], sweep[fp[ap,3]:(fp[ap,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+1000)], sweep[fp[ap,3]:(fp[ap,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+10000)],sweep[fp[ap,3]:(fp[ap,4]+10000)], type = "l", ylab = "mV", xlab = "Time (S)")
+```
+
+Need to develop a way to identify ahps of this nature.
+
+```{r, results='hide'}
+#ap_seg = sweep[fp[4,"apONi"]:fp[4,"apOFFi"]]
+isi_seg = sweep[fp[ap,"apOFFi"]:fp[ap+1,"apONi"]]
+par(mfrow = c(1,1))
+
+#plot(ap_seg, type = "l")
+plot(convertIndex(isi_seg, rate), isi_seg, type = "l")
+
+
+dvdt_mV(isi_seg, rate)
+
+```
+
+# Q19.26.005.1A.06.06
+
+```{r}
+hct = loadHCT("Q19.26.005.1A.06.06")
+
+sweep_name = "data_00027_AD0"
+
+sweep = extractNWB(hct$files$nwb, sweep = sweep_name, slim = TRUE)
+par(mfrow = c(1,1))
+plot(sweep, type = "l")
+
+
+epochs = epochStimulus(hct$files$nwb, s = sweep_name)
+
+rate = hct$exp$sampling_rate[[grep(sweep_name, names(hct$exp$stimulus_description))]]
+
+fp = APanalysis(sweep, rate = hct$exp$sampling_rate[[sweep_name]], eONi = epochs$eONi, eOFFi = epochs$eOFFi)
+
+xf = as.numeric(convertIndex(sweep, rate)) 
+
+par(mfrow = c(1,4))
+plot(xf[fp[2,3]:(fp[2,4])], sweep[fp[2,3]:(fp[2,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+100)], sweep[fp[2,3]:(fp[2,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+1000)], sweep[fp[2,3]:(fp[2,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+10000)],sweep[fp[2,3]:(fp[2,4]+10000)], type = "l", ylab = "mV", xlab = "Time (S)")
+```
+
+# QN22.26.011.1A.37.02
+
+```{r}
+hct = loadHCT("QN22.26.011.1A.37.02")
+
+sweep_name = "data_00029_AD0"
+
+sweep = extractNWB(hct$files$nwb, sweep = sweep_name, slim = TRUE)
+par(mfrow = c(1,1))
+plot(sweep, type = "l")
+
+epochs = epochStimulus(hct$files$nwb, s = sweep_name)
+
+rate = hct$exp$sampling_rate[[grep(sweep_name, names(hct$exp$stimulus_description))]]
+
+fp = APanalysis(sweep, rate = hct$exp$sampling_rate[[sweep_name]], eONi = epochs$eONi, eOFFi = epochs$eOFFi)
+
+xf = as.numeric(convertIndex(sweep, rate)) 
+
+par(mfrow = c(1,4))
+plot(xf[fp[2,3]:(fp[2,4])], sweep[fp[2,3]:(fp[2,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+100)], sweep[fp[2,3]:(fp[2,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+1000)], sweep[fp[2,3]:(fp[2,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+10000)],sweep[fp[2,3]:(fp[2,4]+10000)], type = "l", ylab = "mV", xlab = "Time (S)")
+```
+
+# QN22.26.015.11.05.03
+ 
+```{r}
+hct = loadHCT("QN22.26.015.11.05.03")
+
+sweep_name = "data_00041_AD0"
+
+sweep = extractNWB(hct$files$nwb, sweep = sweep_name, slim = TRUE)
+par(mfrow = c(1,1))
+plot(sweep, type = "l")
+
+epochs = epochStimulus(hct$files$nwb, s = sweep_name)
+
+rate = hct$exp$sampling_rate[[grep(sweep_name, names(hct$exp$stimulus_description))]]
+
+fp = APanalysis(sweep, rate = hct$exp$sampling_rate[[sweep_name]], eONi = epochs$eONi, eOFFi = epochs$eOFFi)
+
+xf = as.numeric(convertIndex(sweep, rate)) 
+
+par(mfrow = c(1,4))
+plot(xf[fp[2,3]:(fp[2,4])], sweep[fp[2,3]:(fp[2,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+100)], sweep[fp[2,3]:(fp[2,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+1000)], sweep[fp[2,3]:(fp[2,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[2,3]:(fp[2,4]+10000)],sweep[fp[2,3]:(fp[2,4]+10000)], type = "l", ylab = "mV", xlab = "Time (S)")
+```
+
+
+
+
+
+
+

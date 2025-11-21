@@ -5,7 +5,7 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
 
   # Select only our cells
   tstAP = aPatch[match(MD$cell_name, aPatch$cell_name_label, nomatch = 0), ]
@@ -36,7 +36,7 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   sMD = sMD[-which(sMD$Species == "S.sciureus"),]
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]
@@ -80,7 +80,7 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(dPatch, file = "~/proj/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
+    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
   }
 
   ## Construct data set lists
@@ -91,14 +91,14 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
 
 mopPS = SeuratHCT_offPipelineMacaque()
 
-# Patch-Seq offpipeline Macaque ---------------------------------------------------------------
+# Patch-Seq offpipeline Human ---------------------------------------------------------------
 SeuratHCT_offPipelineHuman = function(save_object = TRUE, #subclass = c('L5 IT','L5 ET',"L2/3 IT")
                                       subclass = c('L5 IT', 'L5 ET', "L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b")
                                       ) {
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
 
   # Select only our cells
   tstAP = aPatch[match(MD$cell_name, aPatch$cell_name_label, nomatch = 0), ]
@@ -132,7 +132,7 @@ SeuratHCT_offPipelineHuman = function(save_object = TRUE, #subclass = c('L5 IT',
   #sMD = sMD[-which(sMD$Species == "S.sciureus"),]
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]
@@ -155,7 +155,7 @@ SeuratHCT_offPipelineHuman = function(save_object = TRUE, #subclass = c('L5 IT',
   dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(dPatch, file = "~/proj/proj5HT/data-raw/Seurat/offPipeline-Human_PatchSeq.rds")
+    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/offPipeline-Human_PatchSeq.rds")
   }
 
   ## Construct data set lists
@@ -173,7 +173,7 @@ SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
 
   aPatch = aPatch[is.element(aPatch$subclass_Corr_label, subclass), ]
 
@@ -181,7 +181,7 @@ SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT
 
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
@@ -208,7 +208,7 @@ SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT
 
 
   if (save_object) {
-    saveRDS(dPatch, file = "~/proj/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
+    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
   }
 
   ## Construct data set lists
@@ -225,12 +225,12 @@ SeuratHCT_excPatchSeqHuman = function(save_object = TRUE, #subclass = c('L5 IT',
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
 
   aPatch = aPatch[is.element(aPatch$subclass_Corr_label, subclass), ]
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
@@ -258,7 +258,7 @@ SeuratHCT_excPatchSeqHuman = function(save_object = TRUE, #subclass = c('L5 IT',
 
 
   if (save_object) {
-    saveRDS(dPatch, file = "~/proj/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
+    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
   }
 
   ## Construct data set lists
@@ -271,10 +271,10 @@ hePS = SeuratHCT_excPatchSeqHuman()
 
 
 # 10xFacs and SmartSeq Macaque ---------------------------------------------------------------
-SeuratHCT_10xSmart = function(pathSmart =  "~/proj/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/",
-                              path_10x = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/",
+SeuratHCT_10xSmart = function(pathSmart =  "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/",
+                              path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
                               save_object = TRUE,
-                              save_file = "~/proj/proj5HT/data-raw/Seurat/Macaque_Smart10x.rds",
+                              save_file = "~/proj5HT/data-raw/Seurat/Macaque_Smart10x.rds",
                               subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb")
                               ) {
   # 10x FACs ----------------------------------------------------------------
@@ -393,9 +393,9 @@ Smart10x = SeuratHCT_10xSmart()
 
 
 # 10xFACs Macaque ---------------------------------------------------------------
-SeuratHCT_10xMTG = function(path_10x = "~/proj/proj5HT/den/GreatApes_Macaque_NCBI/",
+SeuratHCT_10xMTG = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
                             save_object = TRUE,
-                            save_file = "~/proj/proj5HT/data-raw/MacaqueMTG_10xFACs.rds",
+                            save_file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs.rds",
                             subclass = c('L5 IT','L5 ET',"L2/3 IT")
                             #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb")
 ) {
@@ -448,7 +448,7 @@ SeuratHCT_10xMTG = function(path_10x = "~/proj/proj5HT/den/GreatApes_Macaque_NCB
 # 10x Human ---------------------------------------------------------------
 SeuratHCT_10xHuman = function(human_10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/",
                               save_object = TRUE,
-                              save_file = "~/proj/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds",
+                              save_file = "~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds",
                               subclass = c('L5 IT','L5 ET',"L2/3 IT")
                               #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
 ){
@@ -501,17 +501,18 @@ SeuratHCT_10xHuman = function(human_10x = "//allen/programs/celltypes/workgroups
   cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(cMTG, file = "~/proj/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds")
+    saveRDS(cMTG, file = "~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds")
   }
 
   return(cMTG)
 
 }
 
+# 10x Chimp ---------------------------------------------------------------
 
 SeuratHCT_10xChimp = function(path10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Chimp//",
                               save_object = TRUE,
-                              save_file = "~/proj/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds",
+                              save_file = "~/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds",
                               subclass = c('L5 IT','L5 ET',"L2/3 IT")
                               #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
 ){
@@ -564,16 +565,17 @@ SeuratHCT_10xChimp = function(path10x = "//allen/programs/celltypes/workgroups/r
   cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(cMTG, file = "~/proj/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds")
+    saveRDS(cMTG, file = "~/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds")
   }
 
   return(cMTG)
 
 }
 
+# 10x Gorilla -------------------------------------------------------------
 SeuratHCT_10xGorilla = function(path10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Gorilla/",
                               save_object = TRUE,
-                              save_file = "~/proj/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds",
+                              save_file = "~/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds",
                               subclass = c('L5 IT','L5 ET',"L2/3 IT")
                               #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
 ){
@@ -617,7 +619,7 @@ SeuratHCT_10xGorilla = function(path10x = "//allen/programs/celltypes/workgroups
   gMTG[["percent.mt"]] <- PercentageFeatureSet(gMTG, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(gMTG, file = "~/proj/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds")
+    saveRDS(gMTG, file = "~/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds")
   }
 
   return(gMTG)

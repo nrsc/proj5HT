@@ -36,7 +36,7 @@ legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(t
 ## All SmartSeq
 
 ```{r}
-allSmart = readRDS("~/proj/proj5HT/data-raw/all_SmartSeq.rds")
+allSmart = readRDS("~/proj5HT/data-raw/all_SmartSeq.rds")
 allSmart[["percent.mt"]] <- PercentageFeatureSet(allSmart, pattern = "^MT*")
 #excSmartbrain = subset(SmrtSeq.offP, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))
 
@@ -45,7 +45,7 @@ allSmart[["percent.mt"]] <- PercentageFeatureSet(allSmart, pattern = "^MT*")
 ## Off-pipeline SmartSeq
 
 ```{r import Seurat objects , include=FALSE}
-brain = readRDS("~/proj/proj5HT/data-raw/offPipeline_SmartSeq.rds")
+brain = readRDS("~/proj5HT/data-raw/offPipeline_SmartSeq.rds")
 brain[["percent.mt"]] <- PercentageFeatureSet(brain, pattern = "^MT*")
 
 #brain = subset(SmrtSeq.offP, subset = neighbourhoodCorr %in% c("it_types", "l5et_l56np_l6ct_l6b"))

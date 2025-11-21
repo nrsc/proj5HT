@@ -1,0 +1,383 @@
+---
+title: "5HT spike"
+author: "SawchukS"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, cache = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, warnings = FALSE, out.width = "100%")
+library(proj5HT)
+library(projHCT)
+library(ggplot2)
+library(rhdf5)
+library(nphys)
+library(dplyr)
+library(tidyr)
+```
+
+
+Action potential before and after 5HT application. looking at their mV plots
+
+```{r}
+sh5HT = proj5HT::sh5HT
+cells = sh5HT$cells 
+print(cells)
+#srt = loadHCT(cells[1])
+
+```
+
+```{r}
+# load5HTfigure = function(x, tag){
+#   list.files()
+# }
+```
+
+```{r}
+srt = loadHCT(cells[1], tag = "-srt.rds")
+#srt = loadHCT("Q20.26.026.2A.05.02", tag = "-srt.rds")
+```
+
+
+```{r}
+
+blSweep_name = srt$dfs$spikeTTL$sweep_names[[grep("baseline", names(srt$dfs$spikeTTL$sweep_name))]]
+blpeaks = srt$dfs$spikeTTL$sweep_peaks[[grep("baseline", names(srt$dfs$spikeTTL$sweep_peaks))]]
+blsweep = nphys::extractNWB(srt$md$nwb_file, sweep = blSweep_name, slim = TRUE)
+
+
+#rhdf5::h5ls(srt$files$nwb, recursive = FALSE)$name
+
+sweep_name = srt$dfs$spikeTTL$sweep_names[[grep("spikeTTL", names(srt$dfs$spikeTTL$sweep_name))]]
+TTLpeaks = srt$dfs$spikeTTL$sweep_peaks[[grep("spikeTTL", names(srt$dfs$spikeTTL$sweep_peaks))]]
+sweep = nphys::extractNWB(srt$files$nwb, sweep = sweep_name, slim = TRUE)
+
+#srt$smry = returnHCTsmry(srt$cell)
+
+rate = srt$smry$sampling_rate[[grep(sweep_name, srt$smry$acquisition_names)]]
+
+par(mfrow = c(1,1))
+plot(sweep, type = "l")
+#plot(blsweep, type = "l")
+xf = convertIndex(sweep, rate)
+
+fp = as.data.frame(TTLpeaks)
+fp = fp[-nrow(fp),]
+
+```
+
+```{r}
+ap = 2
+
+par(mfrow = c(2,3))
+plot(xf[fp[ap,3]:(fp[ap,4])], sweep[fp[ap,3]:(fp[ap,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+100)], sweep[fp[ap,3]:(fp[ap,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+1000)], sweep[fp[ap,3]:(fp[ap,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+
+
+which(fp$instRate == max(fp$instRate))
+
+ap = which(fp$instRate == max(fp$instRate))
+
+
+plot(xf[fp[ap,3]:(fp[ap,4])], sweep[fp[ap,3]:(fp[ap,4])], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+100)], sweep[fp[ap,3]:(fp[ap,4]+100)], type = "l", ylab = "mV", xlab = "Time (S)")
+plot(xf[fp[ap,3]:(fp[ap,4]+1000)], sweep[fp[ap,3]:(fp[ap,4]+1000)], type = "l", ylab = "mV", xlab = "Time (S)")
+
+
+### Can build an overlay plot here
+
+```
+
+Do this for the APs at the peak of the change, and for the duration right before
+
+```{r}
+
+par(mfrow = c(1,3))
+
+preAPs = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1):tail(fp$apOFFi[fp$epoch_t < srt$dfs$spikeTTL$ttlTime],1)]
+
+
+postAPs = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime + 5],1)]
+
+
+t0 = fp$epoch_t[which(fp$instRate == max(fp$instRate))]
+tLess = t0-2.5
+tPlus = t0+2.5
+
+maxAPs = sweep[head(fp$apONi[fp$epoch_t > tLess],1):head(fp$apOFFi[fp$epoch_t > tPlus],1)]
+
+plot(preAPs,type = "l", main = "baseline")
+plot(postAPs, type = "l", , main = "at TTL")
+plot(maxAPs, type = "l", , main = "max AP")
+
+
+```
+
+
+```{r}
+
+par(mfrow = c(1,3))
+
+trace1 = dvdt_mV(preAPs, rate = rate, return = TRUE)
+
+trace2 = dvdt_mV(postAPs, rate = rate, return = TRUE)
+
+traceMax = dvdt_mV(maxAPs, rate = rate, return = TRUE)
+
+df1 = data.frame(trace1$dsignal)
+df2 = data.frame(trace2$dsignal)
+df3 = data.frame(traceMax$dsignal)
+
+df0 = bind_rows(df1,df2,df3)
+
+df0$ref = c(rep("baseline", nrow(df1)),rep("TTL", nrow(df2)),rep("max", nrow(df3)))
+
+ggplot(df0, aes(x = L, y = V2, colour = ref)) + 
+  geom_path()
+
+```
+
+```{r}
+
+par(mfrow = c(1,3))
+
+firstBLAP = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1)]
+
+plot(firstBLAP,type = "l", main = "firstAP")
+
+TTLAP = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime],1)]
+
+plot(TTLAP, type = "l", main = "TTL AP")
+
+t0 = fp$epoch_t[which(fp$instRate == max(fp$instRate))]
+
+tLess = t0-2.5
+tPlus = t0+2.5
+
+maxrateAP = sweep[head(fp$apONi[fp$epoch_t == t0],1):head(fp$apOFFi[fp$epoch_t == t0],1)]
+
+plot(maxrateAP, type = "l", main = "maxAP")
+
+x1 = convertIndex(firstBLAP, rate)# - which.max(firstBLAP)
+x2 = convertIndex(TTLAP, rate)
+x3 = convertIndex(maxrateAP, rate)
+
+x1 = zoo::index(firstBLAP) - which.max(firstBLAP)
+x2 = zoo::index(TTLAP) - which.max(TTLAP)
+x3 = zoo::index(maxrateAP) - which.max(maxrateAP)
+
+tst = data.frame(APs = c(firstBLAP,TTLAP,maxrateAP), x = c(x1,x2,x3), ref = c(rep("baseline", length(firstBLAP)),rep("TTL", length(x2)),rep("max", length(x3))))
+
+ggplot(tst, aes(x, APs, colour = ref)) +
+  geom_path()
+                 
+
+```
+
+
+
+```{r}
+par(mfrow = c(1,3))
+
+trace1 = dvdt_mV(firstBLAP, rate = rate, return = TRUE)
+
+#plot(trace1$dsignal,type = "l")
+
+trace2 = dvdt_mV(TTLAP, rate = rate, return = TRUE)
+
+#plot(trace2$dsignal,type = "l")
+
+traceMax = dvdt_mV(maxrateAP, rate = rate, return = TRUE)
+
+#plot(traceMax$dsignal,type = "l")
+
+df1 = data.frame(trace1$dsignal)
+df2 = data.frame(trace2$dsignal)
+df3 = data.frame(traceMax$dsignal)
+
+df0 = bind_rows(df1,df2,df3)
+
+df0$ref = c(rep("baseline", nrow(df1)),rep("TTL", nrow(df2)),rep("max", nrow(df3)))
+
+ggplot(df0, aes(x = L, y = V2, colour = ref)) + 
+  geom_path()
+```
+
+```{r}
+# If we remember from the TTL section of the sweep there is a delay between when the TTL goes on and the 5HT hits 
+par(mfrow = c(1,1))
+
+plot(fp$dvdtMax)
+
+plot(fp$dvdtMin)
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+# Second Cell
+
+```{r, eval=FALSE}
+
+srt = loadHCT(cells[2], tag = "-srt.rds")
+
+blSweep_name = srt$dfs$spikeTTL$sweep_names[[grep("baseline", names(srt$dfs$spikeTTL$sweep_name))]]
+blpeaks = srt$dfs$spikeTTL$sweep_peaks[[grep("baseline", names(srt$dfs$spikeTTL$sweep_peaks))]]
+blsweep = extractNWB(srt$md$nwb_file, sweep = blSweep_name, slim = TRUE)
+
+sweep_name = srt$dfs$spikeTTL$sweep_names[[grep("spikeTTL", names(srt$dfs$spikeTTL$sweep_name))]]
+TTLpeaks = srt$dfs$spikeTTL$sweep_peaks[[grep("spikeTTL", names(srt$dfs$spikeTTL$sweep_peaks))]]
+sweep = extractNWB(srt$files$nwb, sweep = sweep_name, slim = TRUE)
+
+#srt$smry = returnHCTsmry(srt$cell)
+
+rate = srt$smry$sampling_rate[[grep(sweep_name, srt$smry$acquisition_names)]]
+
+par(mfrow = c(1,1))
+#plot(blsweep, type = "l")
+xf = convertIndex(sweep, rate)
+plot(x = xf, y = sweep, type = "l")
+
+fp = as.data.frame(TTLpeaks)
+fp = fp[-nrow(fp),]
+
+```
+
+```{r, eval=FALSE}
+
+par(mfrow = c(1,3))
+
+preAPs = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1):tail(fp$apOFFi[fp$epoch_t < srt$dfs$spikeTTL$ttlTime],1)]
+
+#plot(preAPs,type = "l")
+
+postAPs = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime + 0.78],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime + 5.78],1)]
+
+#plot(postAPs, type = "l")
+
+t0 = fp$epoch_t[which(fp$instRate == max(fp$instRate))]
+tLess = t0-2.5
+tPlus = t0+2.5
+
+maxAPs = sweep[head(fp$apONi[fp$epoch_t > tLess],1):head(fp$apOFFi[fp$epoch_t > tPlus],1)]
+
+#plot(maxAPs, type = "l")
+
+
+plot(preAPs,type = "l", main = "baseline")
+plot(postAPs, type = "l", , main = "at TTL")
+plot(maxAPs, type = "l", , main = "max AP")
+
+
+```
+
+```{r, eval=FALSE}
+
+par(mfrow = c(1,3))
+
+trace1 = dvdt_mV(preAPs, rate = rate, return = TRUE)
+
+trace2 = dvdt_mV(postAPs, rate = rate, return = TRUE)
+
+traceMax = dvdt_mV(maxAPs, rate = rate, return = TRUE)
+
+df1 = data.frame(trace1$dsignal)
+df2 = data.frame(trace2$dsignal)
+df3 = data.frame(traceMax$dsignal)
+
+df0 = bind_rows(df1,df2,df3)
+
+df0$ref = c(rep("baseline", nrow(df1)),rep("TTL", nrow(df2)),rep("max", nrow(df3)))
+
+ggplot(df0, aes(x = L, y = V2, colour = ref)) + 
+  geom_path() +
+  ylab("dvdt") +
+  xlab("mV")
+
+```
+
+```{r, eval=FALSE}
+
+par(mfrow = c(1,3))
+
+firstBLAP = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime - 5],1)]
+
+plot(firstBLAP,type = "l", main = "firstAP")
+
+
+TTLAP = sweep[head(fp$apONi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime+0.8],1):head(fp$apOFFi[fp$epoch_t > srt$dfs$spikeTTL$ttlTime +0.8],1)]
+
+plot(TTLAP, type = "l", main = "TTL AP")
+
+t0 = 25#fp$epoch_t[which(fp$instRate == max(fp$instRate))]
+
+tLess = t0-2.5
+tPlus = t0+2.5
+
+maxrateAP = sweep[head(fp$apONi[fp$epoch_t >= t0],1):head(fp$apOFFi[fp$epoch_t >= t0],1)]
+
+plot(maxrateAP, type = "l", main = "maxAP")
+
+
+x1 = convertIndex(firstBLAP, rate)# - which.max(firstBLAP)
+x2 = convertIndex(TTLAP, rate)
+x3 = convertIndex(maxrateAP, rate)
+
+x1 = zoo::index(firstBLAP) - which.max(firstBLAP)
+x2 = zoo::index(TTLAP) - which.max(TTLAP)
+x3 = zoo::index(maxrateAP) - which.max(maxrateAP)
+
+tst = data.frame(APs = c(firstBLAP,TTLAP,maxrateAP), x = c(x1,x2,x3), ref = c(rep("baseline", length(firstBLAP)),rep("TTL", length(x2)),rep("max", length(x3))))
+
+ggplot(tst, aes(x, APs, colour = ref)) +
+  geom_path() +
+  xlab("time(ms)") +
+  ylab("mV") + 
+  xlim(-50,50) +
+  theme_minimal()
+
+
+```
+
+```{r, eval=FALSE}
+par(mfrow = c(1,3))
+
+trace1 = dvdt_mV(firstBLAP, rate = rate, return = TRUE)
+
+#plot(trace1$dsignal,type = "l")
+
+trace2 = dvdt_mV(TTLAP, rate = rate, return = TRUE)
+
+#plot(trace2$dsignal,type = "l")
+
+traceMax = dvdt_mV(maxrateAP, rate = rate, return = TRUE)
+
+#plot(traceMax$dsignal,type = "l")
+
+df1 = data.frame(trace1$dsignal)
+df2 = data.frame(trace2$dsignal)
+df3 = data.frame(traceMax$dsignal)
+
+df0 = bind_rows(df1,df2,df3)
+
+df0$ref = c(rep("baseline", nrow(df1)),rep("TTL", nrow(df2)),rep("max", nrow(df3)))
+
+ggplot(df0, aes(x = L, y = V2, colour = ref)) + 
+  geom_path()
+```
+
+```{r, eval=FALSE}
+# If we remember from the TTL section of the sweep there is a delay between when the TTL goes on and the 5HT hits 
+
+par(mfrow = c(2,1))
+
+plot(fp$dvdtMax)
+
+plot(fp$dvdtMin)
+```
+
+

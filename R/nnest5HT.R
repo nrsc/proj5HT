@@ -1,6 +1,20 @@
-nnest5HT = function(x){
+#' Nnest the 5HT project data
+#'
+#' @param x
+#' @param save_nnest
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' x = i
+#'
+#'
+nnest5HT = function(x, save_nnest = TRUE, update = TRUE){
 
+  sheets = projHCT::sheets
   srt = list()
+  carry = list()
 
   if (is.list(x)) {
     cell = x$cell
@@ -8,13 +22,16 @@ nnest5HT = function(x){
     cell = x
   }
 
-  #cell = "H22.03.304.11.03.01.01"
+  if(is.list(x) && update){
+      if("dfs" %in% names(x)){
+        carry$dfs = x$dfs
+      }
+      if("ana" %in% names(x)){
+        carry$ana = x$ana
+      }
+  }
 
-  sheets = projHCT::sheets
-  #MD = sheets$MD
-  #cMD = sheets$cleanMD
-
-  md = sheets$cleanMD[grep(cell, sheets$cleanMD$cell_name),]
+  md = sheets$MD[grep(cell, sheets$MD$cell_name),]
   if(nrow(md)==0){
     md = sheets$MD[grep(cell, sheets$MD$cell_name),]
 
@@ -40,30 +57,41 @@ nnest5HT = function(x){
   rd = file.path(projHCT::params$rookery, md$cell_name)
 
   srt = list(
-    project = "5HT",
     cell = cell,
     wd = as.character(wd),
     rd = as.character(rd),
     md = md,
+    project = "5HT",
     files = list(
       pxp = grep(cell, sheets$files$pxp_files, value = TRUE),
       nwb = grep(cell, sheets$files$nwb_files, value = TRUE),
       nnest = file.path(rd, paste0(cell, "-srt.rds")),
+      hct_nnest = file.path(rd, paste0(cell, "-hct.rds")),
       md = file.path(rd, paste0(cell, projHCT::params$tags$md)),
       smry = file.path(rd, paste0(cell, projHCT::params$tags$smry))
     )
   )
 
-  #### Experimental parameters here
-  #### Summary dataframe here
+  #### Summary dataframe
+  if(file.exists(srt$files$smry)){
+    srt$smry = read.csv(file.path(rd, paste0(cell, projHCT::params$tags$smry)))
+  }
 
+  if(update){
+    srt = c(srt,carry)
+  }
 
+  if (file.exists(srt$files$md) && update) {
+    write.csv(as.matrix(md),
+              file = srt$files$md,
+              row.names = FALSE)
+  }
 
   if (!file.exists(srt$rd)) {
     message("creating new directory for cell analysis")
     dir.create(srt$rd)
     message("Writing Metadata")
-    ## Write mdHCT.csv file point in nnest if it does not already exist
+    ## Write md.csv file point in nnest if it does not already exist
     if (!file.exists(srt$files$md)) {
       write.csv(as.matrix(md),
                 file = srt$files$md,
@@ -71,16 +99,10 @@ nnest5HT = function(x){
     }
   }
 
-  if (!file.exists(srt$files$md)) {
-    write.csv(as.matrix(md),
-              file = srt$files$md,
-              row.names = FALSE)
+
+  if (save_nnest) {
+    message(paste0("saving cell ", srt$cell,  "-srt.rds"))
+    saveRDS(srt, file = srt$files$nnest)
   }
-
-
   return(srt)
-
-
-
-
 }

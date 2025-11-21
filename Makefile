@@ -1,5 +1,5 @@
-PROJECT_HOME := $$HOME/proj/proj5HT
-PROJECT_DEN :=	$$HOME/proj/proj5HT/den/
+PROJECT_HOME := $$HOME/proj5HT
+PROJECT_DEN :=	$$HOME/proj5HT/den/
 
 NHP_DATA := /allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts
 HUMAN_DATA := /allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/Human_expts

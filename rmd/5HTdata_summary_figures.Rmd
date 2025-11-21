@@ -38,9 +38,9 @@ legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(t
 ```{r}
 MD = projHCT::sheets$MD
 MD$Cortical_area = gsub("MTG", "TCx", MD$Cortical_area)
-cells = list.files("~/proj/proj5HT/den/serotonin/output/")
-cell_json = list.files("~/proj/proj5HT/den/serotonin/output/", recursive = TRUE, full.names = TRUE, pattern = ".json")
-merged_metadata = read.csv("~/proj/proj5HT/den/serotonin/Data/merged_metadata.csv", row.names = NULL, check.names = FALSE)[, -1]
+cells = list.files("~/proj5HT/den/serotonin/output/")
+cell_json = list.files("~/proj5HT/den/serotonin/output/", recursive = TRUE, full.names = TRUE, pattern = ".json")
+merged_metadata = read.csv("~/proj5HT/den/serotonin/Data/merged_metadata.csv", row.names = NULL, check.names = FALSE)[, -1]
 output_cellsMD = MD[MD$cell_name %in% cells,]
 ```
 
@@ -210,7 +210,7 @@ check_for_analysis = puffCellsMD[!puffCellsMD$cell_name %in% output_cellsMD$cell
 
 table(need_analysis$Species)
 
-write.csv(need_analysis, "~/proj/proj5HT/den/serotonin/Data/50sPuffProtocols_to_add_to_analysis.csv")
+write.csv(need_analysis, "~/proj5HT/den/serotonin/Data/50sPuffProtocols_to_add_to_analysis.csv")
 
 ggplot(need_analysis, aes(x = subclass_Corr, fill = Cortical_area)) +
   geom_bar() +
