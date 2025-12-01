@@ -17,6 +17,7 @@ Spike puff analysis to be nnested in the srt nnest
 }
 \examples{
 x = i
+x = srt
 
 
 }

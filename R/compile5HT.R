@@ -35,7 +35,7 @@ compile5HT = function(save_file = TRUE){
 
   #return(lfout)
 
-  lf = list.files("rookery", pattern = "-srtKetWash.csv", recursive = TRUE, full.names = TRUE)
+  lf = list.files("rookery", pattern = "-srtDrugWash.csv", recursive = TRUE, full.names = TRUE)
 
   lfout = lapply(lf, function(l) {
     print(l)
@@ -53,10 +53,10 @@ compile5HT = function(save_file = TRUE){
   lfout$subclass_Corr = NULL
 
   if(save_file){
-    write.csv(lfout, file = "data-raw/compile_srtKetWash.csv", row.names = FALSE)
+    write.csv(lfout, file = "data-raw/compile_srtDrugWash.csv", row.names = FALSE)
   }
 
-  comp$srtKetWash = lfout
+  comp$srtDrugWash = lfout
 
   return(comp)
 

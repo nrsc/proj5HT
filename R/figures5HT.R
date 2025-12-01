@@ -1,9 +1,36 @@
 figures5HT = function(){
 
-  comp5HT = compile5HT()
-
+  #comp5HT = compile5HT()
   df = data.frame(comp5HT$srtPuff)#, comp5HT$srtKetWash)
 
+  unique(df$expCon)
+  unique(df$puff)
+  unique(df$bath)
+  df$Species
+
+
+
+  df %>% subset(., assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN") & bath == "none" & expCon == "Standard_Puff" & puff == "5HT[100uM]") %>%
+    #lfout %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE) %>%
+    #lfout %>% subset(., !ket) %>%
+    mutate(x_bin = floor(time / 5) * 5) %>%
+    group_by(x_bin, cell_name, assigned_subclass, Species) %>%
+    summarise(y = mean(percent_change), .groups = "drop") %>%
+    ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
+    #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
+    geom_line() +
+    geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
+    facet_wrap(~assigned_subclass) +
+    facet_grid(~Species) +
+    #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
+    ylim(0, 500) +
+    ylab("Time (s)") +
+    xlim(-50, 100) +
+    theme_minimal() +
+    theme(legend.position = "none")
+
+
+  #
   df %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE & expCon == "Standard_Puff") %>%
     #lfout %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE) %>%
     #lfout %>% subset(., !ket) %>%

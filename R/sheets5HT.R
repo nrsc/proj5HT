@@ -9,32 +9,27 @@ sheets5HT = function(){
 
   sMdta = readODS::read_ods("~/proj5HT/den/serotonin/Data/selected_merged_metadata.ods", sheet = "Macaque")
   sMdta = sMdta[!is.na(sMdta$cell_name), ]
-
-
-
-
-
-
   sHdta = readODS::read_ods("~/proj5HT/den/serotonin/Data/selected_merged_metadata.ods", sheet = "Human")
   sHdta = sHdta[!is.na(sHdta$cell_name), ]
 
 
-
-
+  mstrMac = readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Master_Macaque")
+  mstrMac = mstrMac[!is.na(mstrMac$cell_name), ]
 
   sh5HT = list(
     mUI = sMdta,
-    hUI = sHdta
+    hUI = sHdta,
+    mstrMac = mstrMac
     )
 
-  nnested_cells = list.files(
-    "rookery",
+  cells = list.files(
+    "~/proj5HT/rookery",
     pattern = "-srt.rds",
     recursive = TRUE,
     full.names = TRUE
   ) %>% nphys::rmFlag(.) %>% sapply(., nphys::fileD) %>% as.character(.)
 
-  sh5HT$cells = cells
+  sh5HT$nnested_cells = cells
   sh5HT$qCells = cells[grep("Q", cells)]
   sh5HT$hCells = cells[grep("h", cells)]
 

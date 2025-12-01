@@ -7,26 +7,25 @@
 #'
 #' @examples
 #' x = i
+#' x = srt
 #'
 #'
 spikePuff5HT = function(x){
 
   #sh5HT = proj5HT::sheets5HT()
   MD = projHCT::sheets$MD
-  #sMdta = sh5HT$sMdta
+  sh5HT = proj5HT::sh5HT
 
-  sMdta = readODS::read_ods("den/serotonin/Data/selected_merged_metadata.ods", sheet = "Macaque")
-  sMdta = sMdta[!is.na(sMdta$cell_name), ]
-  sHdta = readODS::read_ods("den/serotonin/Data/selected_merged_metadata.ods", sheet = "Human")
-  sHdta = sHdta[!is.na(sHdta$cell_name), ]
+  #mMD = bind_rows(sMdta,sHdta)
+  #mMD = sh5HT$mstrMac
 
-  mMD = bind_rows(sMdta,sHdta)
-
-
+  mMD = readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Master_Macaque")
+  mMD = mMD[!is.na(mMD$cell_name), ]
 
   if(is.character(x)){
-  print(x)
-  srt = loadHCT(x, tag = "-srt.rds")
+    print(x)
+    srt = loadHCT(x, tag = "-srt.rds")
+    x = srt$cell
   }else{
     x = srt$cell
   }
@@ -37,23 +36,27 @@ spikePuff5HT = function(x){
 
   if (nrow(iM0) > 1) {
     iM0 = iM0[grep(1, iM0$Rank), ]
+      if (!nrow(iM0)) {
+        iM0 = iMerged[which(grepl("spikeTTL", iMerged$stimulus_description)), ]
+        iM0 = iM0[grep("blSpike", iM0$Rank), ]
+      }
   }
 
   if(!nrow(iM0)){
     message("No spikeTTL data for use")
-    return(x)
+    return(NULL)
   }
 
   if(is.na(iM0$keep)){
     message("check keep value. Keep is set NA. Need logical inferrence for analysis")
-    return(x)
+    return(NULL)
   }
 
   iM0 = iM0[iM0$keep, ]
 
   # If no protocols are going to be analyzed
   if (nrow(iM0) == 0) {
-    return(x)
+    return(NULL)
   }
 
   ttlTime = iM0$TTLtime
@@ -211,19 +214,23 @@ spikePuff5HT = function(x){
 
     blMean = mean(tst$instRate[which(tst$time < 0 & tst$time > -5)])
     tst$percent_change = (tst$instRate / blMean) * 100
-    plot(tst$time, tst$percent_change, main = paste(x, iMerged$predicted[!is.na(iMerged$predicted)]), xlab = "time", ylab = "% Change")
+    plot(
+      tst$time,
+      tst$percent_change,
+      main = paste(x, iMerged$assigned_subclass[!is.na(iMerged$assigned_subclass)], iM0$Puff_drug, sep = " - "),
+      xlab = "time",
+      ylab = "% Change"
+    )
 
     tst$cell_name = iMD$cell_name
     tst$predicted_subclass = iMD$predicted_subclass
-    tst$assigned_subclass = iMerged$predicted[!is.na(iMerged$predicted)]
-    tst$blockers = iM0$Blockers
-    tst$ket = iM0$Ket
+    tst$assigned_subclass = iMerged$assigned_subclass[!is.na(iMerged$assigned_subclass)]
+    #tst$blockers =
+    tst$bath = iM0$Bath_Drug
+    tst$puff = iM0$Puff_drug
     tst$expCon = ifelse(is.na(iM0$Exp), "Standard_Puff", iM0$Exp)
-
-    #tst$DFP = iMD$Depth_from_pia
-    #tst$LIMs_depth = iMD$LIMS_depth
-    #tst$assigned_depth = iMerged$depth[!is.na(iMerged$depth)]
     tst$response = iM0$Effect
+    tst$Species = iMD$Species
 
     names(sN) = names(sweep_peaks)
     names(sweep_names) = names(sweep_peaks)
@@ -247,11 +254,11 @@ spikePuff5HT = function(x){
 
     write.csv(tst, file.path(srt$rd, paste0(srt$cell, "-srtPuff.csv")))
 
-    srt$dfs$spikeTTL = out
-    saveRDS(srt, srt$files$nnest)
+    #srt$dfs$spikeTTL = out
+    #saveRDS(srt, srt$files$nnest)
+    #print(x)
 
-    print(x)
 
-    return(srt)
+    return(out)
 
 }
