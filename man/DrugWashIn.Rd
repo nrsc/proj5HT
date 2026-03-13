@@ -2,13 +2,42 @@
 % Please edit documentation in R/DrugWashIn.R
 \name{DrugWashIn}
 \alias{DrugWashIn}
-\title{analysis function for the ketaserin washin}
+\title{analysis function for the ketanserin / WAY wash-in}
 \usage{
-DrugWashIn(x)
+DrugWashIn(
+  x,
+  mMD = NULL,
+  mMD_path = "~/proj5HT/den/serotonin/Data/Master_UI_data.ods",
+  mMD_sheet = "Master_Macaque",
+  ttl_default = 5,
+  outlier_sd = 5,
+  bl_window = c(-5, 0),
+  plot_it = TRUE,
+  write_csv = TRUE
+)
 }
 \arguments{
-\item{x}{}
+\item{x}{srt object (from loadHCT/nnest)}
+
+\item{mMD}{optional preloaded Master_UI_data sheet (recommended for loops)}
+
+\item{mMD_path}{path to ODS if mMD not provided}
+
+\item{mMD_sheet}{sheet name}
+
+\item{ttl_default}{default TTL time if missing}
+
+\item{outlier_sd}{remove points > outlier_sd SD from mean instRate}
+
+\item{bl_window}{baseline window (seconds) used for blMean, e.g. c(-5, 0)}
+
+\item{plot_it}{logical; make plots}
+
+\item{write_csv}{logical; write csv to srt$rd}
+}
+\value{
+list (or NULL if not a washin cell / no usable data)
 }
 \description{
-analysis function for the ketaserin washin
+analysis function for the ketanserin / WAY wash-in
 }

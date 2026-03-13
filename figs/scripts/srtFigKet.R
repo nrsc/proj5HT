@@ -1,19 +1,24 @@
 #### Figure 2 ####
-#comp5HT = compile5HT()
-df = data.frame(comp5HT$srtPuff)
 
-df %>% subset(., assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN") & bath == "Ket" & puff == "5HT[100uM]") %>%
-  mutate(x_bin = floor(time / 5) * 5) %>%
-  group_by(x_bin, cell_name, assigned_subclass, Species) %>%
+df %>%
+  dplyr::filter(
+    assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN"),
+    bath == "Ket") %>%
+  group_by(x_bin, cell_name, assigned_subclass) %>%
   summarise(y = mean(percent_change), .groups = "drop") %>%
-  ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
+  group_by(cell_name, assigned_subclass) %>%
+  tidyr::complete(
+    x_bin = seq(min(x_bin), max(x_bin), by = 5),
+    fill = list(y = 0)
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(x = x_bin, y = y, colour = cell_name)) +
   geom_line() +
-  #geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-  #facet_wrap(~assigned_subclass) +
-  facet_grid(rows = vars(Species), cols = vars(assigned_subclass)) +
-  #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-  ylim(0, 500) +
-  ylab("Time (s)") +
-  xlim(-20, 120) +
-  theme_minimal()# +
-  #theme(legend.position = "none")
+  facet_wrap(~assigned_subclass) +
+  ylim(0, 200) +
+  xlim(-20, 100) +
+  ylab("Percent change") +
+  xlab("Time (s)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+

@@ -1,11 +1,11 @@
 # Patch-Seq offpipeline Macaque ---------------------------------------------------------------
-SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                                 subclass = c('L5 IT', 'L5 ET', "L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b")
+SeuratHCT_offPipelineMacaque = function(save_object = TRUE #subclass = c('L5 IT','L5 ET',"L2/3 IT")
+                                 #subclass = c('L5 IT', 'L5 ET', "L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b")
                                  ) {
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "anno.feather"))
 
   # Select only our cells
   tstAP = aPatch[match(MD$cell_name, aPatch$cell_name_label, nomatch = 0), ]
@@ -30,13 +30,15 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   sMD = merge(tstAP, tstMD, "patched_cell_container_label")
 
   # Isolate subclass
-  sMD = sMD[is.element(sMD$subclass_Corr_label, subclass), ]
+  #sMD = sMD[is.element(sMD$subclass_Corr_label, subclass), ]
 
   # Remove Squirrel Monkey Cells that are labeled with a Q instead of a SC
-  sMD = sMD[-which(sMD$Species == "S.sciureus"),]
+  if ("S.sciureus" %in% sMD$Species) {
+    sMD <- sMD[sMD$Species != "S.sciureus", ]
+  }
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]
@@ -75,12 +77,22 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE, #subclass = c('L5 IT
 
   dPatch <- Seurat::CreateSeuratObject(counts = dPatch,
                                        meta.data = sMD,
-                                       project = "opMacaque-PatchSeq")
+                                       project = "offPipeline_Macaque-PatchSeq")
 
-  dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
+  dPatch[["percent.mt"]] <- Seurat::PercentageFeatureSet(dPatch, pattern = "^MT*")
+
+
+
+
+
 
   if (save_object) {
     saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
+
+    excD = subset(dPatch, subset = neighborhood_Corr_label %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+    saveRDS(excD, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq_excitatory.rds")
+    inhD = subset(dPatch, subset = !neighborhood_Corr_label %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+    saveRDS(inhD, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq_inhibitory.rds")
   }
 
   ## Construct data set lists
@@ -173,7 +185,7 @@ SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT
   MD = projHCT::sheets$MD
 
   # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "anno.feather"))
+  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "anno.feather"))
 
   aPatch = aPatch[is.element(aPatch$subclass_Corr_label, subclass), ]
 
@@ -181,7 +193,7 @@ SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT
 
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
@@ -271,7 +283,7 @@ hePS = SeuratHCT_excPatchSeqHuman()
 
 
 # 10xFacs and SmartSeq Macaque ---------------------------------------------------------------
-SeuratHCT_10xSmart = function(pathSmart =  "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-386_map_full/",
+SeuratHCT_10xSmart = function(pathSmart =  "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/",
                               path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
                               save_object = TRUE,
                               save_file = "~/proj5HT/data-raw/Seurat/Macaque_Smart10x.rds",
@@ -394,16 +406,14 @@ Smart10x = SeuratHCT_10xSmart()
 
 # 10xFACs Macaque ---------------------------------------------------------------
 SeuratHCT_10xMTG = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
-                            save_object = TRUE,
-                            save_file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs.rds",
-                            subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                            #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb")
+                            save_object = TRUE, return_object = FALSE,
+                            subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb", "Vip", "Sst", "Sst Chodl")
 ) {
   #### Feather for 10x data
   # Annotation data
+  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
   aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
 
-  # Select Subclass
   aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
 
   # Read in counts
@@ -415,8 +425,9 @@ SeuratHCT_10xMTG = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
   rownames(cMTG) = gene
   cMTG$gene = NULL
 
-  # Select the cells, identified by column names, by those that are left in the annotation data
+
   cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
+
   # Annotation data is filtered by subtype at this point.
 
   if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
@@ -438,19 +449,143 @@ SeuratHCT_10xMTG = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
   cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
 
   if (save_object) {
-    saveRDS(cMTG, file = save_file)
+    message("Saving MacaqueMTG_10xFACs.rds for analysis")
+    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs.rds")
   }
 
-  return(cMTG)
+  if (return_object) {
+    return(cMTG)
+  }
 
 }
+
+SeuratHCT_10xMTG()
+
+SeuratHCT_10xMTGe = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
+                            save_object = TRUE, return_object = FALSE
+
+) {
+  #### Feather for 10x data
+  # Annotation data
+  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
+  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
+
+  unique(aMTG$subclass_label)
+  unique(aMTG$neighborhood_label)
+
+  # Select Subclass
+  aMTG <- aMTG[aMTG$neighborhood_label %in% c("l5et_l56np_l6ct_l6b", "it_types"), ]
+
+  # Read in counts
+  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep = ""))
+
+  # Feather loads in tibble. Change to dataframe
+  cMTG = as.data.frame(cMTG)
+  gene = cMTG$gene
+  rownames(cMTG) = gene
+  cMTG$gene = NULL
+
+  # Select the cells, identified by column names, by those that are left in the annotation data
+  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
+
+
+  # Annotation data is filtered by subtype at this point.
+  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
+    errorCondition(message = "Counts colnames and sample_id do not match")
+  }
+
+  cMTG = as.data.frame(cMTG)
+
+  # In counts so need to transform to Reads per million
+  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
+
+  cMTG = log2(cMTG + 1)
+
+  ## Construct data set lists
+  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
+                                     meta.data = aMTG,
+                                     project = "cMTG")
+
+  cMTG[["percent.mt"]] <- Seurat::PercentageFeatureSet(cMTG, pattern = "^MT*")
+
+  if (save_object) {
+    message("Saving MacaqueMTG_10xFACs_excitatory.rds for analysis")
+    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs_excitatory.rds")
+  }
+
+  if (return_object) {
+  return(cMTG)
+  }
+
+}
+
+SeuratHCT_10xMTGe()
+
+
+SeuratHCT_10xMTGi = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
+                            save_object = TRUE, return_object = FALSE
+
+) {
+  #### Feather for 10x data
+  # Annotation data
+  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
+  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
+
+  # Select Subclass
+
+  aMTG <- aMTG[!aMTG$neighborhood_label %in% c("l5et_l56np_l6ct_l6b", "it_types", "glia"), ]
+
+  # Read in counts
+  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep = ""))
+
+  # Feather loads in tibble. Change to dataframe
+  cMTG = as.data.frame(cMTG)
+  gene = cMTG$gene
+  rownames(cMTG) = gene
+  cMTG$gene = NULL
+
+  # Select the cells, identified by column names, by those that are left in the annotation data
+  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
+
+
+  # Annotation data is filtered by subtype at this point.
+  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
+    errorCondition(message = "Counts colnames and sample_id do not match")
+  }
+
+  cMTG = as.data.frame(cMTG)
+
+  # In counts so need to transform to Reads per million
+  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
+
+  cMTG = log2(cMTG + 1)
+
+  ## Construct data set lists
+  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
+                                     meta.data = aMTG,
+                                     project = "10xFACS_inh")
+
+  cMTG[["percent.mt"]] <- Seurat::PercentageFeatureSet(cMTG, pattern = "^MT*")
+
+  if (save_object) {
+    message("Saving MacaqueMTG_10xFACs_inhibitory.rds for analysis")
+    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs_inhibitory.rds")
+  }
+
+  if (return_object) {
+    return(cMTG)
+  }
+
+}
+
+SeuratHCT_10xMTGi()
 
 # 10x Human ---------------------------------------------------------------
 SeuratHCT_10xHuman = function(human_10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/",
                               save_object = TRUE,
                               save_file = "~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds",
-                              subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
+                              #subclass = c('L5 IT','L5 ET',"L2/3 IT")
+                              subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")#,"Chandelier","Pvalb", "Vip", "Sst", "Sst Chodl")
 ){
 
   aMTG <- feather::read_feather(paste("//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/", "anno.feather", sep = ""))
@@ -507,6 +642,8 @@ SeuratHCT_10xHuman = function(human_10x = "//allen/programs/celltypes/workgroups
   return(cMTG)
 
 }
+
+res = SeuratHCT_10xHuman()
 
 # 10x Chimp ---------------------------------------------------------------
 

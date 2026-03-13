@@ -1,0 +1,194 @@
+---
+title: "QC and UMAP of patch-seq cells"
+author: "Jeremy Miller"
+date: "March 26, 2025"
+output: html_notebook
+---
+
+# Overview
+
+This code describes how to generate QC calls and UMAP coordinates for the patch-seq cells using Seurat.  
+
+This must be run after the first two code documents were run; however, this code block was run on a Windows machine since the docker environment does not work well with Seurat.  See sessionInfo() at the end for details.  We also assume you have already moved to an appropriate working environment.  
+
+## Open the preprocessed and premapped data and set-up the space
+
+Now let's prepare our environment. 
+
+```{r prepare environment, warning=FALSE}
+## Load the libraries
+suppressPackageStartupMessages({
+  library(Seurat)  # We are using Seurat Version 4. More specifically, Seurat_4.4.0 and SeuratObject_5.0.0 
+})
+
+## Allow for more memory in Seurat (64GB RAM in this case)
+options(future.globals.maxSize = 64000 * 1024^2)
+set.seed(42)
+```
+  
+Now load the previously calculated data.  
+  
+```{r load taxonomy, warning=FALSE}
+load("patch_and_facs.RData")
+```
+  
+  
+## Integrate patch-seq and and FACS cells using Seurat FOR QC!
+  
+In this section we are going to integrate Patch-seq and dissociated cells using Seurat. First, let's set up the Seurat object.
+  
+```{r set-up data integration, warning=FALSE}
+## Create data and metadata files
+allGenes     <- intersect(rownames(datPatch),rownames(datMTG))
+all.data     <- cbind(datMTG[allGenes,],datPatch[allGenes,])
+lenD         <- dim(datMTG)[2]
+clusterPatch <- mapping.results$cluster_label_Hierarchical
+subclassPatch<- mapping.results$subclass_label_Hierarchical
+all.metadata <- data.frame( celltype  = c(as.character(annoMTG$cluster_label),clusterPatch),
+                            subclass  = c(as.character(annoMTG$subclass_label),subclassPatch),
+                            source    = c(rep("AIBS",lenD),c("AIBS","other")[grepl("x",annoPatch$cell_specimen_project)+1]),
+                            platform  = c(rep("dissociated",lenD),rep("patch-seq",dim(annoPatch)[1])))
+rownames(all.metadata) <- colnames(all.data)
+
+## Create Seurat object
+all.seurat <- CreateSeuratObject(counts = all.data, meta.data = all.metadata)
+```
+  
+  
+Next, perform the data integration.   
+  
+```{r run Seurat integration by condition, warning=FALSE, fig.height=6, fig.width=7}
+# Split by condition 
+patch.list <- SplitObject(object = all.seurat, split.by = "platform")
+
+# Choose all markers derived from the hierarchical mapping algorithm for mapping only to glutamatergic types that have logCPM>1 as integration anchor features
+patch_features <- markers_glutamatergic
+mean_EXP       <- rowMeans(datMTG)
+patch_features <- intersect(patch_features,rownames(datMTG)[mean_EXP>1])
+
+# Find integration anchors
+set.seed(10)  # I don't think this is necessary, but just in case...
+patch.anchors  <- FindIntegrationAnchors(object.list = patch.list, reference = 1,  # Reference is dissociated cells
+                                         verbose=FALSE, anchor.features = patch_features)
+
+# this command creates an 'integrated' data assay
+patch.combined <- IntegrateData(anchorset = patch.anchors, verbose=FALSE) 
+
+# Perform the integration analysis
+DefaultAssay(patch.combined) <- "integrated"
+
+# Calculate UMAP
+pcs <- 30
+patch.combined <- ScaleData(patch.combined, verbose = FALSE)
+patch.combined <- RunPCA(patch.combined, npcs = pcs, verbose = FALSE)
+patch.combined <- RunUMAP(patch.combined, reduction = "pca", dims = 1:pcs, verbose = FALSE)
+
+DimPlot(patch.combined, reduction = "umap", group.by = "platform", label = FALSE, cols=c("black","grey"), shuffle=TRUE) 
+DimPlot(patch.combined[,patch.combined$platform=="dissociated"], reduction = "umap", group.by = "celltype", label = TRUE, label.size = 2.5) + NoLegend()
+
+# Save to pdf also
+pdf("umap_combined_QC_ONLY.pdf",height = 6, width=7)
+DimPlot(patch.combined, reduction = "umap", group.by = "platform", label = FALSE, cols=c("black","grey"), shuffle=TRUE) 
+DimPlot(patch.combined[,patch.combined$platform=="dissociated"], reduction = "umap", group.by = "celltype", label = TRUE, label.size = 2.5) + NoLegend()
+dev.off()
+```
+  
+There seem to be good alignment for most cells, but then there is also a big cloud of low-quality cells. **Previous work shows that this cloud of patch-seq only cells is a reasonable way of assigning cells as passing vs. failing QC!**  
+
+
+Next, let's perform clustering on the UMAP space and determine a sensible QC cutoff.
+  
+```{r plot UMAP for analysis cell types for QC, fig.height=6,fig.width=7}
+patch.combined <- FindNeighbors(patch.combined, reduction = "umap", dims=1:2, verbose = FALSE)
+patch.combined <- FindClusters(patch.combined, resolution = 0.01, verbose = FALSE)
+pdf("remove_bad_cells.pdf",height=8,width=8)
+DimPlot(patch.combined, reduction = "umap") #
+kp <- !is.element(Idents(patch.combined),c(1))
+DimPlot(patch.combined[,kp], reduction = "umap")
+dev.off()
+seuratQCpass = setNames(kp,names(Idents(patch.combined)))
+seuratQCpass[all.metadata$platform!="dissociated"][mapping.results$class_label_assignment_winner=="Neuronal: GABAergic"] = FALSE  # Manually set anything mapping to a GABAergic type to FALSE (1 cell)
+table(seuratQCpass[all.metadata$platform=="patch-seq"])
+write.csv(data.frame(sample_name=names(seuratQCpass),seuratQCpass=seuratQCpass)[all.metadata$platform=="patch-seq",],"seuratQCpass_SEAAD.csv")
+
+DimPlot(patch.combined, reduction = "umap") #
+DimPlot(patch.combined[,kp], reduction = "umap")
+```
+  
+These are the final cells that pass QC!  We see that 1756/3526 (50%) of cells pass QC using these metrics.  
+  
+  
+## Integrate patch-seq and and FACS cells using Seurat FOR THE ACTUAL PAPER.
+  
+Now run the integration.
+  
+```{r run Seurat integration SUBSET, warning=FALSE, fig.height=6, fig.width=7}
+# Split by condition
+subset.seurat <- CreateSeuratObject(counts = all.data[,seuratQCpass], meta.data = all.metadata[seuratQCpass,])
+subset.list   <- SplitObject(object = subset.seurat, split.by = "platform")
+
+set.seed(10)  # I don't think this is necessary, but just in case...
+subset.anchors  <- FindIntegrationAnchors(object.list = subset.list, reference = 1,  # Reference is dissociated cells
+                                         verbose=FALSE, anchor.features = patch_features)
+
+# this command creates an 'integrated' data assay
+subset.combined <- IntegrateData(anchorset = subset.anchors, verbose=FALSE) 
+
+# Perform the integration analysis
+DefaultAssay(subset.combined) <- "integrated"
+
+# Calculate UMAP
+pcs <- 30
+subset.combined <- ScaleData(subset.combined, verbose = FALSE)
+subset.combined <- RunPCA(subset.combined, npcs = pcs, verbose = FALSE)
+subset.combined <- RunUMAP(subset.combined, reduction = "pca", dims = 1:pcs, verbose = FALSE)
+
+pdf("integrated_umap_combined.pdf", height=6, width=7)
+DimPlot(subset.combined, reduction = "umap", group.by = "platform", label = FALSE, cols=c("black","grey"), shuffle=TRUE) 
+dev.off()
+
+DimPlot(subset.combined, reduction = "umap", group.by = "platform", label = FALSE, cols=c("black","grey"), shuffle=TRUE) 
+```
+  
+  
+Visualize some subclass and cell type plots.  
+  
+```{r plot UMAP for analysis cell types subset, fig.height=8,fig.width=15}
+pdf("integrated_umap_combined_plots2.pdf",height=8,width=15)
+DimPlot(subset.combined, reduction = "umap", group.by = "celltype", split.by = "platform", label = FALSE) + NoLegend()
+DimPlot(subset.combined, reduction = "umap", group.by = "celltype", split.by = "platform", label = TRUE, label.size = 2.5) + NoLegend()
+DimPlot(subset.combined, reduction = "umap", group.by = "subclass", split.by = "platform", label = FALSE) + NoLegend()
+DimPlot(subset.combined, reduction = "umap", group.by = "subclass", split.by = "platform", label = TRUE, label.size = 4.5) + NoLegend()
+dev.off()
+
+DimPlot(subset.combined, reduction = "umap", group.by = "celltype", split.by = "platform", label = TRUE, label.size = 2.5) + NoLegend()
+DimPlot(subset.combined, reduction = "umap", group.by = "subclass", split.by = "platform", label = TRUE, label.size = 4.5) + NoLegend()
+```
+
+There appear to be some minor differences in cell type assignments, but in looking at the plots by eye, I can't make any sense out of which ones look "better" or "worse".  Let's output the results then compare results with morphoelectric characteristics.
+   
+  
+## Output results to csv
+  
+First write a file with the merged FACS (dissociated) and patch-seq data for UMAP creation.
+
+```{r output results}
+anno_merge <- data.frame(all.metadata, seuratQCpass, patch.combined@reductions$umap@cell.embeddings)
+colnames(anno_merge) <- gsub("UMAP","FOR_QC_ONLY_UMAP",colnames(anno_merge))
+
+subset.umap  <- subset.combined@reductions$umap@cell.embeddings
+anno_merge$UMAP_1 <- 0
+anno_merge$UMAP_2 <- 0
+anno_merge[rownames(subset.umap),c("UMAP_1","UMAP_2")] = subset.umap
+
+write.csv(anno_merge,"FACS_patchseq_QC_and_UMAP.csv")
+write.csv(anno_merge[anno_merge$platform!="dissociated",],"patchseq_QC_and_UMAP.csv")
+```
+  
+  
+Output session information.  
+   
+```{r sessionInfo}
+sessionInfo()
+```
+  

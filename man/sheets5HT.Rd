@@ -6,6 +6,9 @@
 \usage{
 sheets5HT()
 }
+\value{
+sh5HT the sheets associated with the 5HT project
+}
 \description{
 Sheets critical for 5HT project analysis functions
 }

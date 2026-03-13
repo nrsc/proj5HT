@@ -1,0 +1,144 @@
+---
+title: "Ket-contamination investigation"
+subtitle: "Optional subtitle"
+author: "Scott S"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  powerpoint_presentation:
+    reference_doc: "doc/AI Brain Science Presentation Template_custom_names.potx"
+    slide_level: 2
+---
+
+```{r}
+library(metap)
+library(feather)
+library(Seurat)
+library(ggplot2)
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+HTRgenesINT = c(
+  "HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C", "HTR4", "HTR5A", "HTR6", "HTR7"
+)
+HTRgenes12 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C")
+HTR1 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
+HTR2 = c("HTR2A", "HTR2B", "HTR2C")
+HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
+
+legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+
+range_colour = scale_colour_gradientn(colours = c("lightgrey", "blue"), limits = c(0, 10),         # min / max shown
+    oob = scales::squish        # squish out-of-range values to limits
+  )
+
+brain = readRDS("~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq_excitatory.rds")
+brain$grouping = ifelse(brain$subclass_Corr %in% c("L4_IT", "L6_IT", "L5/6_NP", "L6b", "L6_CT", "L6_IT_Car3"), "group64", "group235")
+brain = subset(brain, subset = Cortical_area %in% c("TCx", "MCx"))
+brain64 = subset(brain, subset = grouping  %in% c("group64"))
+brain = subset(brain, subset = grouping  %in% c("group235"))
+
+
+cMTG = readRDS("~/proj5HT/data-raw/Seurat/MacaqueMTG_10xFACs.rds")
+cMTG$subclass_label = as.character(gsub(" ", "_", cMTG$subclass_label))
+cMTG$grouping = ifelse(cMTG$subclass_label %in% c("L4_IT", "L6_IT", "L5/6_NP", "L6b", "L6_CT"), "group64", "group235")
+cMTG64 = subset(cMTG, subset = grouping  %in% c("group64"))
+cMTG = subset(cMTG, subset = grouping  %in% c("group235"))
+```
+
+
+## Title slide
+
+This text becomes body content on the Title slide layout (depending on your template).
+
+
+## Title and Content
+
+This text becomes body content on the Title slide layout (depending on your template).
+
+
+## Results {data-layout="Two Content_Orange"}
+
+::: columns
+::: column
+Left
+:::
+::: column
+Right
+:::
+:::
+
+
+
+## Content with Caption
+
+This text becomes body content on the Title slide layout (depending on your template).
+This text becomes body content on the Title slide layout (depending on your template). 
+This text becomes body content on the Title slide layout (depending on your template).
+
+
+
+- Background
+- Data
+- Results
+- Next steps
+- Section Header
+
+
+## Testing
+
+::: columns
+
+::: column
+- Left content goes here
+- Bullets etc.
+:::
+
+::: column
+- Left content goes here
+- Bullets etc.
+:::
+
+:::
+
+## Content slide {data-layout="Content Picture"}
+
+::: columns
+
+::: column
+- Left content goes here
+- Bullets etc.
+:::
+
+::: column
+
+![](figs/basicPuff/5CT_200nM/QF25.26.024.19.03.04_-_L23_IT_-_5CT_200nM_-_Bath-Way635.png)
+:::
+
+:::
+
+## Results {data-layout="Two Content"}
+
+
+::: columns
+
+::: column
+- Left content goes here
+- Bullets etc.
+:::
+
+::: column
+
+![](figs/basicPuff/5CT_200nM/QF25.26.024.19.03.04_-_L23_IT_-_5CT_200nM_-_Bath-Way635.png)
+:::
+
+:::
+
+## 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(8,8)}
+plot(1:10, (1:10)^2)
+```
+
+
+

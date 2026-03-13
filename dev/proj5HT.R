@@ -7,32 +7,36 @@ library(proj5HT)
 
 #### Setup ####
 MD = projHCT::sheets$MD
+# Helper functions
+source("~/proj5HT/R/proj5HT_loop_helper_functions.R", echo = TRUE)
+#file.edit("~/proj5HT/R/proj5HT_loop_helper_functions.R", echo = TRUE)
+
+source("~/proj5HT/R/rmp_helper_functions.R")
+#file.edit("~/proj5HT/R/rmp_helper_functions.R", echo = TRUE)
+#reticulate::source_python('~/proj5HT/py/get_epochs_from_stim.py')
+
 
 #sheets = projHCT::sheets$files$nnest_files
 sh5HT = sheets5HT()
 #sh5HT = proj5HT::sh5HT
+#mstr = sh5HT$mstrMac
+#cells = unique(mstr$cell_name)
 
-mstr = sh5HT$mstrMac
-cells = unique(mstr$cell_name)
+
+mMD <- readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Master_Macaque")
+mMD <- mMD[!is.na(mMD$cell_name), ]
+cells = unique(mMD$cell_name)
 
 # cells already added to rookery
 nnested_cells = sh5HT$nnested_cells
 
 # macaque user input for experiments
-#sMdta = sh5HT$mUI
-output_cellsMD = MD[MD$cell_name %in% nnested_cells,]
-#cells = grep("QF25.26.022",cells, value = TRUE)
+output_cellsMD = MD[MD$cell_name %in% cells,]
 
-#lf = list.files("rookery")
-
-#i = cells[10]
 #### Build ####
-# Want to build baseline appreciating function
-#MD[grep(i, MD$cell_name),]
-#update_cells = sh5HT$mUI$cell_name[!sh5HT$mUI$cell_name %in% sh5HT$nnested_cells]
-update_cells = unique(sh5HT$mstrMac$cell_name[!sh5HT$mstrMac$cell_name %in% sh5HT$nnested_cells])
+update_cells = cells[!cells %in% sh5HT$nnested_cells]
 
-
+### Basic examples
 i = "QF25.26.023.19.06.03"
 i = "QF25.26.024.19.04.05"
 i = "QF25.26.024.19.05.01"
@@ -41,100 +45,222 @@ i = "QF25.26.024.19.05.01"
 i = "QF25.26.024.19.03.03"
 i = "QF25.26.024.19.04.03"
 i = "QF25.26.024.19.08.03"
+i = "QF25.26.024.19.08.03"
+i = "QF25.26.016.11.01.02"
+i =  "QF25.26.023.19.06.03"
 
 
-i = cells[1]
-cells[21]
-which(cells == "QN25.26.017.11.02.02")
-which(update_cells == "QF25.26.024.19.01.02")
-which(cells == i)
-which(update_cells == i)
-i = x
+cell = "QN26.26.004.20.05.01"
+cell = "QN26.26.004.20.02.03"
+cell = "QN26.26.004.20.03.03"
+cell = "QN26.26.004.20.08.02"
+cell = "QN25.26.017.20.06.04"
 
-# Get NWB
-i = update_cells[20]
-i = update_cells[23]
+#### Macaque cells
+mMD <- readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Master_Macaque")
+mMD <- mMD[!is.na(mMD$cell_name), ]
+cells = unique(mMD$cell_name)
+output_cellsMD = MD[MD$cell_name %in% cells,]
+
+#### Human cells
+hMD <- readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Human")
+hMD <- hMD[!is.na(hMD$cell_name), ]
+cells = unique(hMD$cell_name)
+output_cellsMD = MD[MD$cell_name %in% cells,]
+
+cell = cells[94]
+cell = update_cells[9]
+
+which(cell == update_cells)
+which(cell == cells)
+
+cell = cells[2]
+
+for (cell in cells) {
+  message("\n===== ", cell, " =====")
+
+  tryCatch({
+
+    srt <- load5HT(cell, tag = "-srt.rds", rehydrate = FALSE)
+
+    if (is.null(srt)) {
+      srt <- nnest5HT(cell)
+    }
+    if (!is.list(srt)) return(invisible(NULL))
+
+    srt$dfs$asp = build_asp(srt, mMD = hMD)
+    srt$dfs$rmp = build_rmp(srt, mMD = hMD, save_srt = FALSE)
+
+    #plot_rmp_pulse_features(srt$dfs$rmp$by_protocol[[1]]$rmp_protocol_analysis$pulse)
+
+    srt$dfs$blSpike = spikePuff_from_asp(srt, mMD = hMD, plot_it = TRUE)
+    srt$dfs$dwin = DrugWashIn_from_asp(srt, mMD = hMD, plot_it = TRUE)
 
 
 
-
-for(i in cells[56:length(cells)]){
-  print(i)
-
-  #srt = nnest5HT(i)
-  srt = projHCT::loadHCT(i, tag = "-srt.rds")
-
-  # if (!is.null(srt)) {
-  # srt = nnest5HT(srt)
-  # }
-
-  if (is.null(srt)) {
-      srt = nnest5HT(i)
-    if(!file.exists(srt$files$hct_nnest))
-      srt = projHCT::nnestHCT(i)
-      srt = nnest5HT(i)
-  }
-  if(!is.list(srt)){
-    next
-  }
-
-  srt$cell
-
-  srt$dfs$spikeTTL
-
-  if("spikeTTL" %in% names(srt$dfs)){
-    srt$dfs$spikeTTL$MD = NULL
-  }
+    if(!is.null(srt$dfs$asp)){
+    srt = make_figs(srt, y_mode = "percent", x_lim_by_protocol = c(-15,50))
+    #
+    plot_asp_single_protocol(
+      srt$dfs$asp,
+      protocol_key = srt$dfs$asp$protocol_keys[1],
+      heat_dt = 1,
+      ttl_shape = 6,
+      y_mode = "log2_fc",
+      #y_lim = y_lim_single,
+      x_lim = c(-10,55),
+      show_plot = TRUE,
+      save_png = TRUE
+    )
+    plot_asp_single_protocol(
+      srt$dfs$asp,
+      protocol_key = srt$dfs$asp$protocol_keys[5],
+      heat_dt = 1,
+      ttl_shape = 6,
+      y_mode = "log2_fc",
+      #y_lim = y_lim_single,
+      x_lim = c(-10,55),
+      show_plot = TRUE,
+      save_png = TRUE
+    )
 
 
-  if("DrugWash" %in% names(srt$dfs)){
+    }
 
-  }
+    #res <- run_asp_fig_qc_loop_perkey(srt)
+    #srt <- res$srt
+    #call <- res$call
+    #calls <- dplyr::bind_rows(calls, tibble::tibble(cell = srt$cell, call = call))
 
-  #srt$dfs$spikeTTL$spike_puff_output$Species = srt$md$Species
+    saveRDS(srt, file = srt$child_files$nnest)
 
-  #srt$dfs$DrugWash$spike_puff_output
 
-  #srt$dfs$spikeTTL = spikePuff5HT(srt)
-
-  #srt$dfs$DrugWash = DrugWashIn(srt)
-
-  plotBasicPuff(srt)
-
-  plotBasicWash(srt)
-
-  #NaAv = NaAvail5HT(srt, show_plot = TRUE, return_dfs = TRUE)
-  #srt$dfs$NaAv = NaAvail5HT(srt, show_plot = TRUE, return_dfs = TRUE)
-
-  #if(file.exists(file.path(srt$rd, paste0(srt$cell, "-srtPuff.csv")))){
-  #  srt$files$exp_dfs$srtPuff = file.path(srt$rd, paste0(srt$cell, "-srtPuff.csv"))
-  #}
-  #if(file.exists(file.path(srt$rd, paste0(srt$cell, "-srtKetWash.csv")))){
-  #  srt$files$exp_dfs$ketWash = file.path(srt$rd, paste0(srt$cell, "-srtKetWash.csv"))
-  #}
-
-  #askYesNo()
-
-  saveRDS(srt, file = srt$files$nnest)
-
+  }, error = function(e) {
+    # Save a debug bundle and stop (your preference)
+    dbg_file <- file.path(tempdir(), paste0("spikePuff5HT_ERROR_", cell, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".rds"))
+    saveRDS(list(cell = cell, error = e, traceback = sys.calls()), dbg_file)
+    message("ERROR in cell ", cell, " — saved debug to: ", dbg_file)
+    stop(e)  # stop immediately
+  })
 
 }
+
+srt$figs$concat <- plot_asp_concatenated(
+  srt$dfs$asp,
+  gap_s = 2,
+  heat_dt = 1,
+  order_by = "wrapped_sweeps",
+  y_mode = "log2_fc",
+  y_lim = NULL,
+  show_gap_lines = TRUE,
+  save_png = TRUE,
+  png_path = "figs/exp_concat_heat/",
+  verbose = TRUE
+)
+
+
+cells_to_exclude = c(
+  "Q21.26.010.11.13.03"
+)
+
 
 # Assemble complete dataframe ---------------------------------------------
 
 comp5HT = compile5HT()
+comp5HT = readRDS("data-raw/compiled5HT.rds")
 
-srtPlots = function(x){
-  tst = srt$dfs$spikeTTL$spike_puff_output
-  plot(tst$time, tst$percent_change, main = paste(srt$dfs$spikeTTL$selected_MD$cell_name, srt$dfs$spikeTTL$iMerged$predicted[!is.na(srt$dfs$spikeTTL$iMerged$predicted)]), xlab = "time", ylab = "% Change")
-}
+#### archive ####
+
+reticulate::source_python("py/plotting_pdf.py")
+
+plot_nwb_sweeps(
+  nwb_path = srt$files$nwb,
+  sweeps   = list(40L),
+  out_dir  = "figs/traces",
+  fmt      = "pdf",
+  y_unit_target = "mV",
+  pub_void_axes = TRUE,
+  scalebar_x = 10,
+  scalebar_y = 10
+)
 
 
 
+#
+# # ---- decision loop ----
+# call <- NA_character_
+#
+# # ---- Figures plus call ----
+# repeat {
+#
+#   srt <- make_figs(srt,
+#                    y_lim_single = c(-1, NA),
+#                    y_lim_concat = c(NA, NA))
+#
+#   call <- select.list(
+#     choices = c("keep", "omit", "rerun_figures"),
+#     title   = srt$cell
+#   )
+#
+#   # user hit cancel / closed dialog
+#   if (is.null(call) || identical(call, "")) {
+#     message("No selection made; asking again.")
+#     next
+#   }
+#
+#   if (call %in% c("keep", "omit")) break
+#
+#   # otherwise call == "rerun_figures" -> loop continues
+# }
+#
+# # record decision
+# calls <- dplyr::bind_rows(
+#   calls,
+#   tibble::tibble(cell = srt$cell, call = call)
+# )
+#
+# askYesNo("move to next")
+# srtPlots = function(x){
+#   tst = srt$dfs$spikeTTL$spike_puff_output
+#   plot(tst$time, tst$percent_change, main = paste(srt$dfs$spikeTTL$selected_MD$cell_name, srt$dfs$spikeTTL$iMerged$predicted[!is.na(srt$dfs$spikeTTL$iMerged$predicted)]), xlab = "time", ylab = "% Change")
+# }
 
-
+# for(i in cells){
+#   print(i)
+#
+#   #srt = nnest5HT(i)
+#   srt = projHCT::loadHCT(i, tag = "-srt.rds")
+#
+#   if (is.null(srt)) {
+#     srt = nnest5HT(i)
+#     if(!file.exists(srt$files$hct_nnest))
+#       srt = projHCT::nnestHCT(i)
+#     srt = nnest5HT(i)
+#   }
+#   if(!is.list(srt)){
+#     next
+#   }
+#
+#   if("puff" %in% names(srt$dfs)){
+#     srt$dfs$puff = NULL
+#     saveRDS(srt, file = srt$files$nnest)
+#   }
+#
+#   srt$dfs$spikeTTL = spikePuffDrug(srt, mMD = mstr)
+#
+#   srt$dfs$DrugWash = DrugWashIn(srt)
+#
+#   plotBasicPuff(srt)
+#
+#   plotBasicWash(srt)
+#
+#   saveRDS(srt, file = srt$files$nnest)
+#
+#
+# }
 
 #### Sodium availability ####
+#NaAv = NaAvail5HT(srt, show_plot = TRUE, return_dfs = TRUE)
 # NaAvail5HT(srt, show_plot = TRUE, return_dfs = FALSE)
 #
 #
@@ -184,3 +310,4 @@ srtPlots = function(x){
 #   )
 #
 # plot(gg)
+

@@ -22,26 +22,25 @@ library(ggplot2)
 MD = projHCT::sheets$MD
 cMD = projHCT::sheets$cleanMD
 
-HTRgenesINT = c(
-  "HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C", "HTR4", "HTR5A", "HTR6", "HTR7"
-)
-HTRgenes12 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C")
-HTR1 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
-HTR2 = c("HTR2A", "HTR2B", "HTR2C")
-HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
+unique(MD$Cortical_area)
 
-legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+MD$Cortical_area = gsub("MTG", "TCx", MD$Cortical_area)
+
 ```
 
 # No filter summary
 
 ```{r}
-MD = projHCT::sheets$MD
-MD$Cortical_area = gsub("MTG", "TCx", MD$Cortical_area)
-cells = list.files("~/proj5HT/den/serotonin/output/")
-cell_json = list.files("~/proj5HT/den/serotonin/output/", recursive = TRUE, full.names = TRUE, pattern = ".json")
-merged_metadata = read.csv("~/proj5HT/den/serotonin/Data/merged_metadata.csv", row.names = NULL, check.names = FALSE)[, -1]
-output_cellsMD = MD[MD$cell_name %in% cells,]
+
+# macaque user input for experiments
+output_cellsMD = MD[MD$cell_name %in% proj5HT::sh5HT$nnested_cells,]
+
+update_cells = unique(sh5HT$mstrMac$cell_name[!sh5HT$mstrMac$cell_name %in% sh5HT$nnested_cells])
+
+if(length(update_cells) == 0){
+  print("zero")
+}
+
 ```
 
 ```{r}
@@ -51,217 +50,10 @@ ggplot(output_cellsMD, aes(x = Species, fill = Species)) +
 
 table(output_cellsMD$Species)
 
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
-  geom_bar() +
+ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
+  geom_bar(position = "dodge") +
   facet_wrap(~Species, nrow = 3) +
   theme_minimal()
 ```
 
-```{r}
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
-  geom_bar() +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-```
-
-```{r}
-# Predicted subclass
-ggplot(output_cellsMD, aes(x = predicted_subclass, fill = predicted_subclass)) +
-  geom_bar() +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-```
-
-# Cells with 50s puff protocols #
-
-```{r}
-msmry = projHCT::sheets$dfs$massSmry
-puffPro = msmry[grep("50spuff", msmry$stimulus_description),]
-puffCells = unique(puffPro$cell_name)
-puffCellsMD = MD[MD$cell_name %in% unique(puffPro$cell_name),]
-```
-
-```{r}
-
-ggplot(puffCellsMD, aes(x = Species, fill = Species)) +
-  geom_bar() +
-  theme_minimal()
-
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
-  geom_bar() +
-  facet_wrap(~Species, nrow = 4) +
-  theme_minimal()
-
-puffNA = puffCellsMD[which(is.na(puffCellsMD$predicted_subclass)),]
-
-```
-
-```{r}
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = subclass_Corr)) +
-  geom_bar() +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-```
-
-```{r}
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-
-```
-
-```{r}
-ggplot(puffCellsMD, aes(x = predicted_subclass, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-ggplot(output_cellsMD, aes(x = predicted_subclass, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-
-```
-
-```{r}
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-
-```
-
-# Filter out and build basic figures for each
-
-```{r}
-output_cellsMD_fltr = output_cellsMD %>% 
-  dplyr::filter(Species %in% c("Human", "M.nemestrina")) %>% 
-  dplyr::filter(class_Corr %in% c("exc", "Glutamatergic")) %>% 
-  dplyr::filter(Cortical_area %in% c("MCx", "TCx"))
-
-table(output_cellsMD$Species)
-
-puffCellsMD_fltr = puffCellsMD %>% 
-  dplyr::filter(Species %in% c("Human", "M.nemestrina")) %>% 
-  dplyr::filter(class_Corr %in% c("exc", "Glutamatergic")) %>% # %>% 
-  dplyr::filter(Cortical_area %in% c("MCx", "TCx"))# %>% 
-
-table(puffCellsMD$Species)
-```
-
-```{r}
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  #geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  #geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-```
-
-
-```{r}
-
-cells_for_analysis = unique(puffPro$cell_name)[!unique(puffPro$cell_name) %in% unique(output_cellsMD$cell_name)]
-
-unique(output_cellsMD$cell_name)
-
-tstCell = "H21.03.304.11.04.02.02"
-
-tstCell %in% cells_for_analysis
-
-tst = puffPro[puffPro$cell_name %in% cells_for_analysis,]
-identical(unique(tst$cell_name), cells_for_analysis)
-
-tst2 = MD[MD$cell_name %in% cells_for_analysis,]
-
-
-unique(tst$cell_name)
-
-
-
-
-unique(puffPro$cell_name)[unique(puffPro$cell_name) %in% unique(output_cellsMD$cell_name)]
-
-
-check_for_analysis = puffCellsMD[!puffCellsMD$cell_name %in% output_cellsMD$cell_name,]
-
-
-
-
-
-table(need_analysis$Species)
-
-write.csv(need_analysis, "~/proj5HT/den/serotonin/Data/50sPuffProtocols_to_add_to_analysis.csv")
-
-ggplot(need_analysis, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  #geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal()
-
-```
-
-```{r}
-grid.arrange(
-ggplot(puffCellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  #geom_bar(position = "dodge") +
-  facet_wrap(~Species, nrow = 2) +
-  ggtitle("Cells with 50spuff protocols") +
-  theme_minimal() +
-  theme(legend.position = "none"),
-
-ggplot(output_cellsMD, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  ggtitle("Cells already analyzed") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal() +
-  theme(legend.position = "none"),
-
-ggplot(need_analysis, aes(x = subclass_Corr, fill = Cortical_area)) +
-  geom_bar() +
-  ggtitle("Cells for analysis") +
-  facet_wrap(~Species, nrow = 2) +
-  theme_minimal() +
-  theme(
-    legend.position = "inside",
-    legend.position.inside = c(0.7,0.9)),
-ncol = 3
-)
-
-```
-
-# Already analyzed cell compile 
-
-```{r}
-my_list = jsonlite::fromJSON(cell_json[3])
-plot(x = my_list$spike_puff0$spike_times, y = my_list$spike_puff0$Instantaneous_frequency)
-```
-
-```{r}
-
-cell_json[3]
-
-jfile = cell_json[grep(i, cell_json)]
-jlist = jsonlite::fromJSON(jfile)
-```
 

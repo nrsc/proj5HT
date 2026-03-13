@@ -1,0 +1,201 @@
+---
+title: "Seurat figures for off-pipeline data"
+author: "SawchukS"
+date: "2025-07-16"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      out.width = "100%",
+                      warning = FALSE,
+                      cache = TRUE)
+
+
+library(Seurat)
+library(ggplot2)
+
+
+MD = projHCT::sheets$MD
+cMD = projHCT::sheets$cleanMD
+
+HTRgenesINT = c(
+  "HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C", "HTR4", "HTR5A", "HTR6", "HTR7"
+)
+HTRgenes12 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F", "HTR2A", "HTR2B", "HTR2C")
+HTR1 = c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
+HTR2 = c("HTR2A", "HTR2B", "HTR2C")
+HTR0 = c("HTR4", "HTR5A", "HTR6", "HTR7")
+
+legend_guides = c(size = guide_legend(title = "% Exp"), color = guide_colorbar(title = "Avg Exp"))
+
+dPatch = readRDS("~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
+dPatch$neighborhood_Corr_label
+
+
+#dPatch = subset(dPatch, subset = neighborhood_Corr_label %in% c("it_types", "l5et_l56np_l6ct_l6b"))
+
+```
+
+### Cell type depth
+
+```{r}
+#obj = subset(dPatch, subset = subclass_Corr %in% c("L2/3_IT") & Cortical_area %in% c("MCx", "TCx"))
+obj = brain
+obj = subset(brain, subset = subclass_Corr %in% c("L2/3_IT"))
+obj$assigned_depth = ifelse(is.na(obj$LIMS_depth), obj$Depth_from_pia*.77, obj$LIMS_depth)
+
+obj <- subset(obj, subset = !is.na(assigned_depth))
+
+obj = subset(obj, subset = Genes.Detected >= 2000 &
+               percent_reads_aligned_to_introns >= 15 &
+               marker_sum_norm_label >=0.3 & 
+               quality_score_label >= 0.25 & 
+               score.Corr_label >= 0.4)
+
+
+
+obj$cluster_Corr_label
+
+df <- Seurat::FetchData(
+  obj,
+  vars = c("LIMS_depth", "subclass_Corr", "cell_name", "Depth_from_pia", "assigned_depth", "Cortical_area", "predicted_subclass", HTRgenes12, "cluster_Corr_label")
+)
+
+tstDF = df[df$assigned_depth < 1500,]
+
+df_long <- df[df$assigned_depth < 1400,] %>%
+#df_long <- df[df$assigned_depth < 1000 & df$subclass_Corr == "L2/3_IT",] %>%
+  tidyr::pivot_longer(
+    cols = all_of(HTRgenes12),
+    names_to = "gene",
+    values_to = "expression"
+  ) %>% dplyr::filter(expression > 0 & !is.na(expression))
+
+
+range(df_long$assigned_depth)
+
+#ggplot(df_long, aes(assigned_depth, expression)) +
+subset(df_long, subclass_Corr %in% c("L2/3_IT")) %>% 
+ggplot(., aes(x = assigned_depth, y = expression, colour = cluster_Corr_label)) +
+  geom_point(alpha = 0.8, size = 0.8) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), se = FALSE, colour = "blue") +
+  facet_grid(cluster_Corr_label ~ gene) +  # rows = subclass, cols = gene
+  theme_minimal() +
+  labs(
+    x = "LIMS depth",
+    y = "HTR expression",
+    title = "HTR gene expression vs depth in L2/3_IT supertypes"
+  ) +
+  theme(legend.position = "none")
+
+
+
+
+#subset(df_long, predicted_subclass %in% c("L5_ET")) %>% 
+ggplot(., aes(x = assigned_depth, y = expression)) +
+  geom_point(alpha = 0.3, size = 0.4) +
+  geom_smooth(, method = "loess", se = FALSE) +
+  facet_grid(Cortical_area ~ gene) +  # rows = subclass, cols = gene
+  theme_bw() +
+  labs(
+    x = "LIMS depth",
+    y = "HTR expression",
+    title = "HTR gene expression vs depth by subclass_Corr"
+  )
+
+
+```
+
+
+# Proportion of cells that show HTR expression
+
+```{r}
+
+df_any <- df %>%
+  mutate(
+    HTR_any = rowSums(across(all_of(HTRgenes12), ~ .x > 0), na.rm = TRUE) > 0
+  )
+
+prop_gene <- df_long_bin %>%
+  mutate(is_pos = expression > 0) %>%
+  group_by(Cortical_area, gene, subclass_Corr) %>%
+  summarise(prop_HTR = mean(is_pos), .groups = "drop")
+
+
+ggplot(prop_gene_pos,
+       aes(x = gene, y = prop_pos, fill = subclass_Corr)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  facet_wrap(~ Cortical_area) +
+  scale_y_continuous(labels = percent_format()) +
+  labs(
+    x = "HTR gene",
+    y = "Proportion HTR+",
+    fill = "Subclass",
+    title = "Proportion of cells expressing each HTR gene"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+  
+```
+
+
+# ClusterMD cells
+
+
+
+```{r}
+cluster_MD = read.csv("data-raw/hct_cluster_matched.csv")[,-1]
+#cluster_cells = as.character(dPatch$cell_name[cluster_MD$cell_name %in% dPatch$cell_name])
+
+#objCluster = subset(obj, subset = cell_name %in% cluster_MD$cell_name)
+obj = subset(dPatch, subset = subclass_Corr %in% c("L2/3_IT", "L5_IT", "L5_ET", "L6_IT") & cell_name %in% cluster_MD$cell_name)
+
+obj = subset(obj, subset = Genes.Detected >= 2000 &
+               percent_reads_aligned_to_introns >= 15 &
+               marker_sum_norm_label >=0.3 & 
+               quality_score_label >= 0.25 & 
+               score.Corr_label >= 0.4)
+
+
+obj$assigned_depth = ifelse(is.na(obj$LIMS_depth), obj$Depth_from_pia*.77, obj$LIMS_depth)
+obj <- subset(obj, subset = !is.na(assigned_depth))
+
+
+df <- Seurat::FetchData(
+  obj,
+  vars = c("LIMS_depth", "subclass_Corr", "cell_name", "Depth_from_pia", "assigned_depth", "Cortical_area", HTRgenes12)
+)
+
+df_long <- df %>%
+  tidyr::pivot_longer(
+    cols = all_of(HTRgenes12),
+    names_to = "gene",
+    values_to = "expression"
+  )
+
+
+ggplot(df_long, aes(x = assigned_depth, y = expression)) +
+  geom_point(alpha = 0.3, size = 0.4) +
+  geom_smooth(data = df_long %>% dplyr::filter(expression > 0), method = "loess", se = FALSE) +
+  #geom_smooth(data = df_long %>% dplyr::filter(expression > 0), method = "lm", se = FALSE) +
+  #geom_smooth(method = "lm", se = FALSE) +
+  #geom_smooth(method = "loess", se = FALSE) +
+  facet_grid(subclass_Corr ~ gene) +  # rows = subclass, cols = gene
+  theme_bw() +
+  labs(
+    x = "LIMS depth",
+    y = "HTR expression",
+    title = "HTR gene expression vs depth by subclass_Corr"
+  )
+
+
+```
+
+
+

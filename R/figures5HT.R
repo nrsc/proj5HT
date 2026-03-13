@@ -1,74 +1,70 @@
 figures5HT = function(){
 
-  #comp5HT = compile5HT()
-  df = data.frame(comp5HT$srtPuff)#, comp5HT$srtKetWash)
+  #### Import dataframes ####
+  source("~/proj5HT/R/figures_df_build.R")
+  #file.edit("~/proj5HT/R/figures_df_build.R")
+  dfs = figure_df_build()
 
-  unique(df$expCon)
-  unique(df$puff)
-  unique(df$bath)
-  df$Species
+  unique(dfs$dfH$x_bin)
+  range(dfs$dfH$percent_change)
 
 
-
-  df %>% subset(., assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN") & bath == "none" & expCon == "Standard_Puff" & puff == "5HT[100uM]") %>%
-    #lfout %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE) %>%
-    #lfout %>% subset(., !ket) %>%
-    mutate(x_bin = floor(time / 5) * 5) %>%
+  dfs$dfH %>% #subset(., assigned_subclass %in% c("L5_IT", "L5_ET")) %>%
+    #utate(x_bin = floor(time / 2) * 2) %>%
     group_by(x_bin, cell_name, assigned_subclass, Species) %>%
     summarise(y = mean(percent_change), .groups = "drop") %>%
-    ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
+    ggplot(., aes(x = x_bin, y = y, group = cell_name, colour = assigned_subclass)) +
     #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
     geom_line() +
-    geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
+    #geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
     facet_wrap(~assigned_subclass) +
-    facet_grid(~Species) +
-    #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-    ylim(0, 500) +
-    ylab("Time (s)") +
-    xlim(-50, 100) +
+    #facet_grid(~Species) +
+    #facet_grid(rows = vars(Species), cols = vars(assigned_subclass)) +
+    ylim(0, 300) +
+    ggtitle("5HT response across subclass") +
+    xlab("Time (s)") +
+    ylab("Percent Change") +
+    xlim(-10, 50) +
     theme_minimal() +
     theme(legend.position = "none")
 
 
-  #
-  df %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE & expCon == "Standard_Puff") %>%
-    #lfout %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & ket == FALSE) %>%
-    #lfout %>% subset(., !ket) %>%
-    mutate(x_bin = floor(time / 5) * 5) %>%
+
+  df_ket %>% subset(., assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET") & bath == "Ket" & expCon == "Standard_Puff" &  puff %in% c("5HT[100uM]", "5HT[200uM]")) %>%
+    #mutate(x_bin = floor(time / 5) * 5) %>%
     group_by(x_bin, cell_name, assigned_subclass) %>%
     summarise(y = mean(percent_change), .groups = "drop") %>%
-    ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
+    ggplot(., aes(x = x_bin, y = y, group = cell_name, colour = assigned_subclass)) +
     #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
     geom_line() +
-    geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
+    #geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
     facet_wrap(~assigned_subclass) +
-    #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-    ylim(0, 500) +
+    #facet_grid(~Species) +
+    ##facet_grid(rows = vars(Species), cols = vars(assigned_subclass)) +
+    #ylim(0, 500) +
     ylab("Time (s)") +
-    xlim(-50, 100) +
+    xlab("Percent Change") +
+    xlim(-10, 40) +
     theme_minimal() +
     theme(legend.position = "none")
-  #
 
-  df %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & expCon == "Ket" | expCon == "Ket-wash-in") %>%
-    #lfout %>% subset(., !ket) %>%
-    mutate(x_bin = floor(time / 5) * 5) %>%
-    #mutate(x_bin = cut(time, breaks = seq(0, max(time) + 5, by = 5), right = FALSE)) %>%
-    group_by(x_bin, cell_name, assigned_subclass) %>%
-    summarise(y = mean(percent_change), .groups = "drop") %>%
-    ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
-    #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
-    geom_line() +
-    geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-    facet_wrap(~assigned_subclass) +
-    ggtitle("Ketanserin") +
-    #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-    ylim(0, 200) +
-    ylab("Time (s)") +
-    xlim(-20, 100) +
-    theme_minimal() +
-    theme(legend.position = "none")
-  #
+
+
+  #### Human data ####
+  #file.edit("~/proj5HT/figs/scripts/srtHumanData.R")
+  source("~/proj5HT/figs/scripts/srtHumanData.R", echo = TRUE)
+
+
+  #### Figure comparing dates of L5 and L2/3 cells by date ####
+  #file.edit("figs/scripts/srtFigDateCompare.R")
+  source("figs/scripts/srtFigDateCompare.R", echo = TRUE)
+
+
+
+  #### Ket figures for Macaque ####
+  #file.edit("~/proj5HT/figs/scripts/srtFigKet.R")
+  source("~/proj5HT/figs/scripts/srtFigKet.R", echo = TRUE)
+
   df %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & expCon == "Control") %>%
     #lfout %>% subset(., !ket) %>%
     mutate(x_bin = floor(time / 5) * 5) %>%
@@ -82,103 +78,14 @@ figures5HT = function(){
     geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
     facet_wrap(~assigned_subclass) +
     #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-    ylim(0, 200) +
+    ylim(50, 150) +
     ylab("Time (s)") +
     xlim(-50, 50) +
     theme_minimal() +
     theme(legend.position = "none")
 
+  file.edit("~/proj5HT/figs/scripts/srtFig5CTpuff.R")
 
-
-
-# # Predicted Subclass plots ------------------------------------------------
-# lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-#   mutate(x_bin = floor(t / 5) * 5) %>%
-#   group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-#   summarise(y = mean(percent_change), .groups = "drop") %>%
-#   ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-#   #ggplot(., aes(x = t, y = rate, colour = cell)) +
-#   geom_line() +
-#   geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-#   facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-#   ggtitle("% change grouped by predicted_subclass") +
-#   ylim(0, 300) +
-#   ylab("Time (s)") +
-#   #xlim(-50, 120) +
-#   xlim(-25, 60) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
-#
-#
-# lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-#   mutate(x_bin = floor(t / 5) * 5) %>%
-#   group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-#   summarise(y = mean(rate), .groups = "drop") %>%
-#   ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-#   #ggplot(., aes(x = t, y = rate, colour = cell)) +
-#   geom_line() +
-#   ggtitle("Firing rate grouped by predicted_subclass") +
-#   geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-#   facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-#   #ylim(0, 300) +
-#   ylab("Time (s)") +
-#   xlim(-50, 120) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
-#
-#
-#
-# # Subclass_Tree label plots -----------------------------------------------
-#
-# #### Human vs Macacque subclass_Tree % Change
-# lfout %>% subset(., subclass_Tree %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-#   mutate(x_bin = floor(t / 5) * 5) %>%
-#   group_by(x_bin, protocol, cell, subclass_Tree, Species) %>%
-#   summarise(y = mean(percent_change), .groups = "drop") %>%
-#   ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-#   #ggplot(., aes(x = t, y = percent_change, colour = cell)) +
-#   geom_line() +
-#   geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-#   facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-#   ylim(0, 300) +
-#   ylab("Time (s)") +
-#   xlim(-50, 120) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
-#
-#
-#
-# #### Human vs Macacque subclass_Tree rate
-# lfout %>% subset(., subclass_Tree %in% c("L2/3_IT", "L5_IT", "L5_ET")) %>%
-#   mutate(x_bin = floor(t / 5) * 5) %>%
-#   group_by(x_bin, protocol, cell, subclass_Tree, Species) %>%
-#   summarise(y = mean(rate), .groups = "drop") %>%
-#   ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-#   #ggplot(., aes(x = t, y = rate, colour = cell)) +
-#   geom_line() +
-#   geom_smooth(method = "loess", span = 0.2, se = FALSE, color = "red", size = 1.2) +
-#   facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
-#   #ylim(0, 300) +
-#   ylab("Time (s)") +
-#   xlim(-50, 120) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
-#
-#
-#
-# # archive -----------------------------------------------------------------
-# lfout %>% subset(., predicted_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET") & Cortical_area == "TCx") %>%
-#   mutate(x_bin = floor(t / 5) * 5) %>%
-#   group_by(x_bin, protocol, cell, predicted_subclass, Species) %>%
-#   summarise(y = mean(percent_change), .groups = "drop") %>%
-#   ggplot(., aes(x = x_bin, y = y, colour = cell)) +
-#   geom_line() +
-#   #facet_wrap( ~ predicted_subclass, nrow = 3, scales = "free") +
-#   facet_grid(cols = vars(Species), rows = vars(predicted_subclass)) +
-#   ylim(0, 300) +
-#   ylab("Time (s)") +
-#   xlim(-25, 120) +
-#   theme_minimal() +
-#   theme(legend.position = "none")
+  dfW = data.frame(comp5HT$srtDrugWash)
 
 }

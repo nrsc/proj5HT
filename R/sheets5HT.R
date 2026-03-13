@@ -1,10 +1,10 @@
 #' Sheets critical for 5HT project analysis functions
 #'
 #'
-#' @returns
-#' @export
+#' @returns sh5HT the sheets associated with the 5HT project
 #'
-#' @examples
+#'
+#' @export
 sheets5HT = function(){
 
   sMdta = readODS::read_ods("~/proj5HT/den/serotonin/Data/selected_merged_metadata.ods", sheet = "Macaque")
