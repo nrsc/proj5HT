@@ -11,4 +11,22 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5)
+Imports:
+    dplyr,
+    tidyr,
+    ggplot2,
+    tibble,
+    zoo,
+    scales,
+    rlang,
+    readODS,
+    readr,
+    stringr,
+    nphys,
+    projHCT
+Suggests:
+    Seurat,
+    reticulate,
+    jsonlite,
+    forcats
 LazyData: true

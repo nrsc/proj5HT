@@ -8,9 +8,34 @@ figures5HT = function(){
   unique(dfs$dfH$x_bin)
   range(dfs$dfH$percent_change)
 
+  #### Human data ####
+  #file.edit("~/proj5HT/figs/scripts/srtHumanData.R")
+  source("~/proj5HT/figs/scripts/srtHumanData.R", echo = TRUE)
 
-  dfs$dfH %>% #subset(., assigned_subclass %in% c("L5_IT", "L5_ET")) %>%
-    #utate(x_bin = floor(time / 2) * 2) %>%
+
+  #### Figure comparing dates of L5 and L2/3 cells by date ####
+  #file.edit("figs/scripts/srtFigDateCompare.R")
+  file.edit("figs/scripts/srt_ketContam.R")
+  source("figs/scripts/srtFigDateCompare.R", echo = TRUE)
+
+
+
+
+
+  #### Ket figures for Macaque ####
+  #file.edit("~/proj5HT/figs/scripts/srtFigKet.R")
+  source("~/proj5HT/figs/scripts/srtFigKet.R", echo = TRUE)
+
+
+  #### Ket figures for Macaque ####
+  #file.edit("~/proj5HT/figs/scripts/srtFig5CT.R")
+  source("~/proj5HT/figs/scripts/srtFig5CT.R", echo = TRUE)
+
+
+
+
+  dfs$df_5ct %>% #subset(., assigned_subclass %in% c("L5_IT", "L5_ET")) %>%
+    #mutate(x_bin = floor(time / 2) * 2) %>%
     group_by(x_bin, cell_name, assigned_subclass, Species) %>%
     summarise(y = mean(percent_change), .groups = "drop") %>%
     ggplot(., aes(x = x_bin, y = y, group = cell_name, colour = assigned_subclass)) +
@@ -20,8 +45,8 @@ figures5HT = function(){
     facet_wrap(~assigned_subclass) +
     #facet_grid(~Species) +
     #facet_grid(rows = vars(Species), cols = vars(assigned_subclass)) +
-    ylim(0, 300) +
-    ggtitle("5HT response across subclass") +
+    ylim(0, 200) +
+    ggtitle("5CT response across macaque pyramids") +
     xlab("Time (s)") +
     ylab("Percent Change") +
     xlim(-10, 50) +
@@ -50,24 +75,12 @@ figures5HT = function(){
 
 
 
-  #### Human data ####
-  #file.edit("~/proj5HT/figs/scripts/srtHumanData.R")
-  source("~/proj5HT/figs/scripts/srtHumanData.R", echo = TRUE)
-
-
-  #### Figure comparing dates of L5 and L2/3 cells by date ####
-  #file.edit("figs/scripts/srtFigDateCompare.R")
-  source("figs/scripts/srtFigDateCompare.R", echo = TRUE)
 
 
 
-  #### Ket figures for Macaque ####
-  #file.edit("~/proj5HT/figs/scripts/srtFigKet.R")
-  source("~/proj5HT/figs/scripts/srtFigKet.R", echo = TRUE)
-
-  df %>% subset(., assigned_subclass %in% c("L2/3_IT", "L5_IT", "L5_ET", "L5_PN") & expCon == "Control") %>%
+  dfs$df %>% subset(., assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN") & expCon == "Control") %>%
     #lfout %>% subset(., !ket) %>%
-    mutate(x_bin = floor(time / 5) * 5) %>%
+    #mutate(x_bin = floor(time / 5) * 5) %>%
     #mutate(x_bin = cut(time, breaks = seq(0, max(time) + 5, by = 5), right = FALSE)) %>%
     group_by(x_bin, cell_name, assigned_subclass) %>%
     summarise(y = mean(percent_change), .groups = "drop") %>%

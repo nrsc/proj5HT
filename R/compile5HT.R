@@ -34,6 +34,7 @@ compile5HT = function(save_file = TRUE){
   lfout$...1 = NULL
   #lfout$subclass_Corr = NULL
   lfout$bath = gsub("Way635", "WAY635", lfout$bath)
+  lfout$expCon = gsub("standard_puff", "Standard_Puff", lfout$expCon)
   #unique(lfout$assigned_subclass)
 
   outMD = MD[MD$cell_name %in% unique(lfout$cell_name),]
@@ -74,6 +75,7 @@ compile5HT = function(save_file = TRUE){
   lfout_dw$...1 = NULL
   #lfout$subclass_Corr = NULL
   lfout_dw$bath = gsub("Way635", "WAY635", lfout_dw$bath)
+  lfout_dw$expCon = gsub("standard_puff", "Standard_Puff", lfout_dw$expCon)
 
 
   comp$srtDrugWash = lfout_dw

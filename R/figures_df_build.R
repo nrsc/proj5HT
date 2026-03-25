@@ -27,9 +27,7 @@ figure_df_build = function(){
       !cell_name %in% c("Q21.26.014.1A.21.02", "Q21.26.010.11.13.03")
     )
 
-
   #### Manipulate already present variables if necessary ####
-  df$expCon = gsub("standard_puff", "Standard_Puff", df$expCon)
   df$assigned_subclass = gsub("/", "", df$assigned_subclass)
   df$Date = as.Date(df$Date)
 
@@ -64,6 +62,9 @@ figure_df_build = function(){
   df <- fill_missing_bins(df)
 
   #### Subclass specific dataframes ####
+  df_inh = df %>% dplyr::filter(
+    !assigned_subclass %in% c("L6_IT", "L56_NP", "L6_IT_Car3","L6_CT", "L6b","L23_IT", "L5_ET", "L5_IT")
+  )
   df = df %>% dplyr::filter(
     assigned_subclass %in% c("L6_IT", "L56_NP", "L6_IT_Car3","L6_CT", "L6b","L23_IT", "L5_ET", "L5_IT")
   )
@@ -84,6 +85,11 @@ figure_df_build = function(){
     dplyr::filter(
       bath == "Ket")
 
+  df_5ct = df %>%
+    dplyr::filter(
+      puff == "5CT[200nM]"
+    )
+
   #### Isolate sparse datasets
   #Ket conamination period
   df_kcon = df %>%
@@ -91,6 +97,17 @@ figure_df_build = function(){
       Date >= as.Date("2025-09-17") &
         Date <= as.Date("2026-01-14")
     )
+
+  df_control = df %>%
+    dplyr::filter(
+      puff %in% c("Control", "acsf")
+    )
+
+  df_carb = df %>%
+    dplyr::filter(
+      puff == "Carb[50uM]"
+    )
+
 
   #Ket washout experiment
   df_kwo = df %>%
@@ -113,27 +130,35 @@ figure_df_build = function(){
   )
 
 
+
+
   #### Get standard puff experiments ####
   df0 = df %>%
     dplyr::filter(
       assigned_subclass %in% c("L23_IT", "L5_ET", "L5_IT"),
       bath == "none",
+      #puff %in% c("5HT[100uM]", "5HT[100uM]"),
       expCon %in% c("Standard_Puff", "lowEGTA_IC"),
       !dplyr::between(
         Date,
         as.Date("2025-09-17"),
         as.Date("2026-01-14")
       ),
-      grepl("^5HT", puff))
+      grepl("^5HT", puff)
+      )
 
   dfs = list(
     df = df,
     df0 = df0,
+    df_inh = df_inh,
     dfH = dfH,
     df46 = df46,
+    df_5ct = df_5ct,
     df_way = df_way,
     df_ket = df_ket,
-    df_kcon = df_kcon
+    df_kcon = df_kcon,
+    df_carb = df_carb,
+    df_control = df_control
   )
 
   return(dfs)

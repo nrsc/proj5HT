@@ -56,6 +56,8 @@ cell = "QN26.26.004.20.03.03"
 cell = "QN26.26.004.20.08.02"
 cell = "QN25.26.017.20.06.04"
 
+cell = "H22.03.301.11.09.01.03"
+
 #### Macaque cells
 mMD <- readODS::read_ods("~/proj5HT/den/serotonin/Data/Master_UI_data.ods", sheet = "Master_Macaque")
 mMD <- mMD[!is.na(mMD$cell_name), ]

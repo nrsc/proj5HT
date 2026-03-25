@@ -87,3 +87,35 @@ plot_binned_cell_traces <- function(df,
 
   return(p)
 }
+
+#
+# dfs = figure_df_build()
+#
+#
+plot_binned_cell_traces(
+  dfH,
+  x_col = "time",
+  y_col = "percent_change",
+  cell_col = "cell_name",
+  color_col = "assigned_subclass",
+  facet_col = "assigned_subclass",
+  extra_group_cols = "Species",
+  bin_width = 2,
+  na_rm = FALSE,
+  use_existing_x_bin = FALSE,
+  xlim = c(-10, 50),
+  ylim = c(0, 300),
+  title = "5HT response across subclass",
+  x_lab = "Time (s)",
+  y_lab = "Percent Change"
+)
+#
+#
+# plot_binned_cell_traces(
+#   df = dfs$dfH,
+#   use_existing_x_bin = TRUE,
+#   x_bin_col = "x_bin",
+#   fill_missing_bins = TRUE,
+#   fill_value = 0,
+#   bin_seq = seq(-10, 50, by = 2)
+# )

@@ -11,9 +11,6 @@ suppressPackageStartupMessages({
   library(dplyr)
 })
 
-df = df %>% dplyr::filter(bath == "none",
-                          !cell_name %in% c("Q21.26.014.1A.21.02", "Q21.26.010.11.13.03"))
-
 # ------------------------------------------------------------
 # Main classification function
 # ------------------------------------------------------------
@@ -152,6 +149,11 @@ res <- classify_percent_change(
   moderate_thresh = 35,
   strong_thresh = 70
 )
+
+file.edit("dev/build_response_classifier/puff_helpers.R")
+file.edit("dev/build_response_classifier/puff_processing.R")
+file.edit("dev/build_response_classifier/puff_plotting.R")
+file.edit("dev/build_response_classifier/run_puff_classifier.R")
 
 # ------------------------------------------------------------
 # Check the inhibitory cell you gave
