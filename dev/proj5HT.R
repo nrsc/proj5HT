@@ -76,7 +76,7 @@ cell = update_cells[9]
 which(cell == update_cells)
 which(cell == cells)
 
-cell = cells[2]
+cell = cells[30]
 
 for (cell in cells) {
   message("\n===== ", cell, " =====")

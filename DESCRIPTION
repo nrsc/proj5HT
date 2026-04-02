@@ -25,8 +25,11 @@ Imports:
     nphys,
     projHCT
 Suggests:
+    knitr,
+    rmarkdown,
     Seurat,
     reticulate,
     jsonlite,
     forcats
+VignetteBuilder: knitr
 LazyData: true

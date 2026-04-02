@@ -324,8 +324,8 @@ load5HT <- function(
     NA_character_
   }
 
-  #cell <- infer_cell(x)
-  cell <- infer_cell(cell)
+  cell <- infer_cell(x)
+  #cell <- infer_cell(cell)
 
   # ---- FAST PATH: cell name + no rehydrate ----
   if (isFALSE(rehydrate) &&

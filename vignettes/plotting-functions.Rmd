@@ -1,0 +1,331 @@
+---
+title: "proj5HT Plotting Functions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{proj5HT Plotting Functions}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5,
+  dpi = 150,
+  out.width = "100%"
+)
+```
+
+```{r setup, message = FALSE}
+library(proj5HT)
+library(projHCT)
+library(ggplot2)
+library(dplyr)
+```
+
+# Overview
+
+`proj5HT` provides several families of plotting functions for visualizing
+serotonin puff-response data:
+ 
+| Function | Description |
+|----------|-------------|
+| `plot_cell_qc()` | Per-cell QC trace (raw + smoothed % baseline) |
+| `plot_cell_qc_many()` | Batch-save QC traces to PNG |
+| `plot_response_composition()` | Stacked bar of response classes by subclass |
+| `plot_response_heatmap()` | Tile heatmap of response call vs subclass |
+| `plot_centered_violin()` | Violin + jitter of response peak by subclass |
+| `plot_exc_inh_traces()` | Faceted excitation/inhibition traces with group mean |
+| `plotBasicPuff()` | Dual-axis puff trace (% change + firing rate) |
+| `plotWashIn()` | Baseline vs drug wash-in comparison |
+| `plot_asp_single_protocol()` | Single protocol trace + heat strip |
+| `plot_asp_concatenated()` | Concatenated multi-protocol trace + heat strip |
+| `plot_sidebyside_heat_wash()` | Side-by-side baseline vs wash heat plots |
+
+This vignette walks through each family using real data.
+
+---
+
+# 1. Load data
+
+All 5-HT plotting workflows start from either:
+
+- A **compiled puff dataframe** (e.g. `compile_srtPuff.csv`) for the classifier
+  plots, or
+- An **srt nnest** (loaded via `load5HT()` / `loadHCT()`) for the ASP and
+  protocol-level plots.
+
+## 1a. Classifier pipeline data
+
+The classifier plots consume `df_prepped` and `per_cell` — produced by the
+`classify_puff_response()` pipeline.
+
+```{r classifier-data, eval = FALSE}
+# Load the compiled puff dataset
+#comp <- readRDS("data-raw/compiled5HT.rds")
+
+# Or read from CSV
+comp <- read.csv("data-raw/compile_srtPuff.csv")
+
+dfs = figure_df_build()
+
+# Run the full classification pipeline
+res <- classify_puff_response(dfs$df0)
+
+df_prepped <- res$df_prepped
+per_cell   <- res$per_cell
+```
+
+## 1b. Single-cell (srt) data
+
+```{r}
+
+```
+
+
+Protocol-level plots use an srt nnest loaded from the rookery.
+
+```{r srt-data, eval = FALSE}
+#sh5HT <- sheets5HT()
+#cells  <- sh5HT$nnested_cells
+cells = proj5HT::sh5HT$nnested_cells
+
+# Load a single cell
+srt <- load5HT(cells[5], tag = "-srt.rds", rehydrate = FALSE)
+
+# Ensure ASP is built
+if (is.null(srt$dfs$asp)) {
+  srt$dfs$asp <- build_asp(srt)
+}
+```
+
+---
+
+# 2. Classifier plots
+
+These five functions from `plot_classify5HT.R` operate on the output of
+`classify_puff_response()`.
+
+## 2a. Per-cell QC trace — `plot_cell_qc()`
+
+Shows the raw and smoothed `pct_of_baseline` trace for a single cell,
+with shaded time-window bands and excursion threshold lines.
+
+```{r qc-trace, eval = FALSE}
+# Pick one cell
+cell_id <- per_cell$cell_name[1]
+
+p <- plot_cell_qc(df_prepped, cell_id = cell_id)
+p
+```
+
+Key parameters:
+
+- `smooth_method`: `"rollmean"` (default), `"rollmedian"`, or `"loess"`
+- `smooth_k`: rolling window width (default 3)
+- `rapid_window`, `mid_window`, `late_window`: shaded time bands
+- `min_excursion_pct`: horizontal threshold lines at 100 ± this value
+
+```{r qc-trace-custom, eval = FALSE}
+# Customized version
+plot_cell_qc(
+  df_prepped,
+  cell_id = cell_id,
+  smooth_method = "loess",
+  loess_span = 0.3,
+  min_excursion_pct = 15
+)
+```
+
+## 2b. Batch QC plots — `plot_cell_qc_many()`
+
+Saves per-cell QC PNGs to a directory in one call.
+
+```{r qc-many, eval = FALSE}
+plot_cell_qc_many(
+  df_prepped,
+  cell_ids = per_cell$cell_name[1:5],
+  out_dir  = "figs/qc",
+  width    = 7,
+  height   = 4.5,
+  dpi      = 200
+)
+```
+
+## 2c. Response composition — `plot_response_composition()`
+
+Stacked bar chart showing the fraction of each response class within
+each subclass.
+
+```{r composition, eval = FALSE}
+plot_response_composition(per_cell)
+```
+
+Change the grouping variable:
+
+```{r composition-custom, eval = FALSE}
+plot_response_composition(per_cell, x = "Species")
+```
+
+## 2d. Response heatmap — `plot_response_heatmap()`
+
+A tile heatmap of response call vs subclass, with percentage labels.
+
+```{r heatmap, eval = FALSE}
+plot_response_heatmap(per_cell)
+```
+
+```{r heatmap-custom, eval = FALSE}
+# Flip axes
+plot_response_heatmap(per_cell, x = "assigned_subclass", y = "response_call")
+```
+
+## 2e. Violin plot — `plot_centered_violin()`
+
+Violin + jitter showing `response_peak` by subclass, colored by direction.
+
+```{r violin, eval = FALSE}
+plot_centered_violin(per_cell)
+```
+
+## 2f. Excitation / inhibition traces — `plot_exc_inh_traces()`
+
+Faceted panel showing individual cell traces (grey) with a bold group
+mean, split by response type and subclass.
+
+```{r exc-inh-traces, eval = FALSE}
+plot_exc_inh_traces(
+  df_prepped,
+  per_cell,
+  subclasses = c("L23_IT", "L5_ET", "L5_IT"),
+  xlim       = c(-5, 60),
+  smooth_k   = 3
+)
+```
+
+---
+
+# 3. Basic puff & wash-in plots
+
+## 3a. Basic puff trace — `plotBasicPuff()`
+
+Dual-axis plot (% change on left, firing rate on right) for a single srt
+nnest's `spikeTTL` output.
+
+```{r basic-puff, eval = FALSE}
+plotBasicPuff(srt, bin_seconds = 1, xlim = c(-20, 50))
+```
+
+## 3b. Wash-in comparison — `plotWashIn()`
+
+Overlays baseline and drug wash-in conditions with faceted panels for
+firing rate and percent change.
+
+```{r wash-in, eval = FALSE}
+plotWashIn(srt, bin_seconds = 1, xlim = c(-20, 60))
+```
+
+---
+
+# 4. ASP protocol plots
+
+The ASP (All Spike Puff) system produces protocol-level views of the
+firing-rate response with a companion heat strip.
+
+## 4a. Single protocol — `plot_asp_single_protocol()`
+
+Plots one protocol section: a trace panel (points colored by instRate)
+and a one-row heat strip.
+
+```{r asp-single, eval = FALSE}
+asp <- srt$dfs$asp
+
+# By exact key
+plot_asp_single_protocol(asp, protocol_key = names(asp$by_protocol)[1], x_lim = c(-15, 40), heat_dt = 2)
+
+# By regex match
+plot_asp_single_protocol(asp, key_match = "standard_puff", y_mode = "log2_fc",, x_lim = c(-15, 40), heat_dt = 2)
+```
+
+Available `y_mode` transforms:
+
+| Mode | Y-axis | Reference line |
+|------|--------|---------------|
+| `"percent"` | `% of baseline` | 100 |
+| `"log10_percent"` | `log10(percent_change)` | `log10(100)` |
+| `"signed_log10_delta"` | `sign(%-100) * log10(|%-100|+1)` | 0 |
+| `"log2_fc"` | `log2(rate / baseline)` | 0 |
+
+```{r asp-single-custom, eval = FALSE}
+plot_asp_single_protocol(
+  asp,
+  key_match = "standard_puff",
+  y_mode    = "signed_log10_delta",
+  #y_lim     = c(-1.5, 1.5),
+  heat_dt   = 0.25,
+  save_png  = TRUE,
+  png_path  = "figs/exp_single_heat"
+)
+```
+
+## 4b. Concatenated protocols — `plot_asp_concatenated()`
+
+Concatenates all protocols into one global time axis with gaps, producing
+a panoramic view of the entire recording.
+
+```{r asp-concat, eval = FALSE}
+plot_asp_concatenated(
+  asp,
+  gap_s    = 2,
+  order_by = "wrapped_sweeps",
+  y_mode   = "log2_fc",
+  y_lim    = c(-1, 1)
+)
+```
+
+## 4c. Side-by-side baseline vs wash — `plot_sidebyside_heat_wash()`
+
+Combines two `plot_asp_single_protocol()` outputs (baseline and wash
+protocol) into a two-column layout.
+
+```{r sidebyside, eval = FALSE}
+plot_sidebyside_heat_wash(
+  srt,
+  y_mode = "log2_fc",
+  y_lim  = c(-2, 1),
+  heat_dt = 1
+)
+```
+
+---
+
+# 5. Full figure pipeline — `run_asp_figs_pipeline()`
+
+For batch processing, `run_asp_figs_pipeline()` wraps the concatenated
+and single-protocol plots in one call and attaches results to the srt nnest.
+
+```{r fig-pipeline, eval = FALSE}
+srt$figs <- run_asp_figs_pipeline(
+  srt,
+  make_concat_plot  = TRUE,
+  make_single_plots = TRUE,
+  concat_args = list(y_mode = "log2_fc", y_lim = c(-1, 1)),
+  single_args = list(y_mode = "log2_fc", save_png = FALSE)
+)
+
+# Access individual plots
+srt$figs$asp$concat$plot
+srt$figs$asp$single[["Standard_Puff_001"]]$plot
+```
+
+---
+
+# Session info
+
+```{r sessioninfo}
+sessionInfo()
+```

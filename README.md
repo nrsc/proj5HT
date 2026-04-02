@@ -56,7 +56,7 @@ Almost every analysis function reaches into projHCT at run-time:
 
 | projHCT reference | Where it appears | What it provides |
 |---|---|---|
-| `projHCT::sheets$MD` | `compile5HT`, `data5HT`, `spikePuff`, `DrugWashIn`, `ketWashIn`, `build_asp`, `build_rmp`, `baseline_stim_5HTpuff`, `talk.Rmd` | The master metadata table for all patched cells (species, subclass, NWB path, depth, date, etc.). |
+| `projHCT::sheets$MD` | `compile5HT`, `data5HT`, `spikePuff`, `DrugWashIn`, `ketWashIn`, `build_asp`, `build_rmp`, `baseline_stim_5HTpuff` | The master metadata table for all patched cells (species, subclass, NWB path, depth, date, etc.). |
 | `projHCT::sheets$map` | `data5HT` | NHP annotation / cell-mapping tables (used for cross-referencing cristina's L2/3 dataset). |
 | `projHCT::sheets$files$nnest_*` | `child_payload5HT` (`get_idx_map`) | Fast file-to-cell index maps so `load5HT` / `nnest5HT` can locate nnests without disk scanning. |
 | `projHCT::sheets$cleanMD` | `talk.Rmd` | A cleaned metadata frame used for presentations and Seurat integration. |
@@ -133,7 +133,6 @@ proj5HT/
 │   ├── qc/
 │   └── scripts/               ← Figure-building R scripts
 ├── py/                        ← Python helper modules
-├── claude/                    ← AI-assisted review scripts
 ├── doc/                       ← Presentation templates
 ├── DESCRIPTION
 ├── NAMESPACE
