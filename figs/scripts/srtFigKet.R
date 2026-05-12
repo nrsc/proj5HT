@@ -1,6 +1,6 @@
 #### Figure 2 ####
 
-df %>%
+dfs$df %>%
   dplyr::filter(
     assigned_subclass %in% c("L23_IT", "L5_IT", "L5_ET", "L5_PN"),
     bath == "Ket") %>%
@@ -8,7 +8,7 @@ df %>%
   summarise(y = mean(percent_change), .groups = "drop") %>%
   group_by(cell_name, assigned_subclass) %>%
   tidyr::complete(
-    x_bin = seq(min(x_bin), max(x_bin), by = 5),
+    x_bin = seq(min(x_bin), max(x_bin), by = 2),
     fill = list(y = 0)
   ) %>%
   ungroup() %>%

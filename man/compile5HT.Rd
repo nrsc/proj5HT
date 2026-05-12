@@ -6,9 +6,6 @@
 \usage{
 compile5HT(save_file = TRUE)
 }
-\arguments{
-\item{save_file}{}
-}
 \description{
 Compile 5HT dataframes
 }

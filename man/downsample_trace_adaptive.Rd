@@ -14,9 +14,6 @@ downsample_trace_adaptive(
   thin_slow_every = 2
 )
 }
-\arguments{
-\item{thin_slow_every}{}
-}
 \description{
 Adaptive Downsampling
 }

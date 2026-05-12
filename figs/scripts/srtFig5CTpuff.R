@@ -1,4 +1,5 @@
-df %>% subset(., bath == "none" & puff == "5CT[200nM]") %>%
+dfs$df_5ct %>% subset(., bath == "none") %>%
+dfs$df_5ct %>% #subset(., bath == "none") %>%
   group_by(x_bin, cell_name, assigned_subclass) %>%
   summarise(y = mean(percent_change), .groups = "drop") %>%
   ggplot(., aes(x = x_bin, y = y, colour = cell_name)) +
@@ -9,6 +10,6 @@ df %>% subset(., bath == "none" & puff == "5CT[200nM]") %>%
   #facet_grid(cols = vars(Species), rows = vars(subclass_Tree)) +
   ylim(0, 200) +
   ylab("Time (s)") +
-  xlim(-50, 120) +
+  xlim(-10, 50) +
   theme_minimal()# +
   theme(legend.position = "none")

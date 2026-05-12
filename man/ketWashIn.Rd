@@ -6,9 +6,6 @@
 \usage{
 ketWashIn(x)
 }
-\arguments{
-\item{x}{}
-}
 \description{
 analysis function for the ketaserin washin
 }

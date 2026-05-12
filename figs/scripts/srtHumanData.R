@@ -1,6 +1,6 @@
 #### Human 5HT figures ####
 
-dfH %>% subset(., assigned_subclass %in% c("L5_IT", "L5_ET", "L23_IT", "L4_IT")) %>%
+dfs$dfH %>% subset(., assigned_subclass %in% c("L5_IT", "L5_ET", "L23_IT", "L4_IT")) %>%
   mutate(x_bin = floor(time / 2) * 2) %>%
   group_by(x_bin, cell_name, assigned_subclass, Species) %>%
   summarise(y = mean(percent_change), .groups = "drop") %>%

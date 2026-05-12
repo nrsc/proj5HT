@@ -2,6 +2,9 @@ dt = as.Date("2025-11-16")
 Before = paste("Before", dt)
 After = paste("After", dt)
 
+df = dfs$df
+
+
 df = df %>% mutate(
   date_clean = as.Date(stringr::str_remove(Date, "\\s+PZT")),
   date_group = if_else(

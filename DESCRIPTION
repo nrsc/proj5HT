@@ -4,11 +4,9 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Scott", "Sawchuk", , "scott.sawchuk@alleninstitute.org", role = c("aut", "cre"))
 Description: Various data formating and analysis tools.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5)
 Imports:
@@ -30,6 +28,9 @@ Suggests:
     Seurat,
     reticulate,
     jsonlite,
-    forcats
+    forcats,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 LazyData: true
+Config/roxygen2/version: 8.0.0
+Config/testthat/edition: 3

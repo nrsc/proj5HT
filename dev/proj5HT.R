@@ -7,7 +7,17 @@ library(proj5HT)
 
 #### Setup ####
 MD = projHCT::sheets$MD
+
 # Helper functions
+source("~/proj5HT/R/spikePuff_from_asp.R", echo = TRUE)
+#file.edit("~/proj5HT/R/spikePuff_from_asp.R", echo = TRUE)
+
+source("~/proj5HT/R/DrugWashIn_from_asp.R", echo = TRUE)
+#file.edit("~/proj5HT/R/DrugWashIn_from_asp.R", echo = TRUE)
+
+source("~/proj5HT/R/build_asp.R", echo = TRUE)
+#file.edit("~/proj5HT/R/build_asp.R", echo = TRUE)
+
 source("~/proj5HT/R/proj5HT_loop_helper_functions.R", echo = TRUE)
 #file.edit("~/proj5HT/R/proj5HT_loop_helper_functions.R", echo = TRUE)
 
@@ -55,6 +65,9 @@ cell = "QN26.26.004.20.02.03"
 cell = "QN26.26.004.20.03.03"
 cell = "QN26.26.004.20.08.02"
 cell = "QN25.26.017.20.06.04"
+cell = "QM26.26.022.20.04.03"
+cell = "QM26.26.022.20.06.02"
+cell = "QN26.26.007.20.03.03"
 
 cell = "H22.03.301.11.09.01.03"
 
@@ -78,53 +91,60 @@ which(cell == cells)
 
 cell = cells[30]
 
-for (cell in cells) {
+cell = tail(update_cells, 3)[1]
+
+
+
+for (cell in tail(update_cells, 3)) {
   message("\n===== ", cell, " =====")
+    srt <- load5HT(cell, tag = "-srt.rds", rehydrate = FALSE)
+    #file.remove(list.files(srt$rd, full.names = TRUE)[grep("standard_puff", list.files(srt$rd))])}
 
   tryCatch({
 
-    srt <- load5HT(cell, tag = "-srt.rds", rehydrate = FALSE)
+
+    list.files(srt$rd)
 
     if (is.null(srt)) {
       srt <- nnest5HT(cell)
     }
     if (!is.list(srt)) return(invisible(NULL))
 
-    srt$dfs$asp = build_asp(srt, mMD = hMD)
-    srt$dfs$rmp = build_rmp(srt, mMD = hMD, save_srt = FALSE)
+    srt$dfs$asp = build_asp(srt, mMD = mMD, write_csv = TRUE)
+    srt$dfs$rmp = build_rmp(srt, mMD = mMD, save_srt = FALSE, write_csv = TRUE)
 
     #plot_rmp_pulse_features(srt$dfs$rmp$by_protocol[[1]]$rmp_protocol_analysis$pulse)
 
-    srt$dfs$blSpike = spikePuff_from_asp(srt, mMD = hMD, plot_it = TRUE)
-    srt$dfs$dwin = DrugWashIn_from_asp(srt, mMD = hMD, plot_it = TRUE)
+    srt$dfs$blSpike = spikePuff_from_asp(srt, mMD = mMD, plot_it = TRUE)
+    srt$dfs$dwin = DrugWashIn_from_asp(srt, mMD = mMD, plot_it = TRUE)
 
 
 
     if(!is.null(srt$dfs$asp)){
     srt = make_figs(srt, y_mode = "percent", x_lim_by_protocol = c(-15,50))
     #
-    plot_asp_single_protocol(
-      srt$dfs$asp,
-      protocol_key = srt$dfs$asp$protocol_keys[1],
-      heat_dt = 1,
-      ttl_shape = 6,
-      y_mode = "log2_fc",
-      #y_lim = y_lim_single,
-      x_lim = c(-10,55),
-      show_plot = TRUE,
-      save_png = TRUE
-    )
-    plot_asp_single_protocol(
-      srt$dfs$asp,
-      protocol_key = srt$dfs$asp$protocol_keys[5],
-      heat_dt = 1,
-      ttl_shape = 6,
-      y_mode = "log2_fc",
-      #y_lim = y_lim_single,
-      x_lim = c(-10,55),
-      show_plot = TRUE,
-      save_png = TRUE
-    )
+    # plot_asp_single_protocol(
+    #   srt$dfs$asp,
+    #   protocol_key = srt$dfs$asp$protocol_keys[1],
+    #   heat_dt = 1,
+    #   ttl_shape = 6,
+    #   y_mode = "log2_fc",
+    #   #y_lim = y_lim_single,
+    #   x_lim = c(-10,55),
+    #   show_plot = TRUE,
+    #   save_png = TRUE
+    # )
+    # plot_asp_single_protocol(
+    #   srt$dfs$asp,
+    #   protocol_key = srt$dfs$asp$protocol_keys[5],
+    #   heat_dt = 1,
+    #   ttl_shape = 6,
+    #   y_mode = "log2_fc",
+    #   #y_lim = y_lim_single,
+    #   x_lim = c(-10,55),
+    #   show_plot = TRUE,
+    #   save_png = TRUE
+    # )
 
 
     }

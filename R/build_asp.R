@@ -120,7 +120,7 @@ build_asp <- function(x,
                       bl_window = c(-5, 0),
                       save_srt = TRUE,
                       plot_it = FALSE,
-                      write_csv = FALSE,
+                      write_csv = TRUE,
                       csv_tag = "-asp.csv") {
 
 
@@ -136,8 +136,8 @@ build_asp <- function(x,
   # Helpers for filling Master UI columns
   # ============================================
 
-  #' Repeat the first non-empty (non-NA, non-"") value for the whole column
-  #' (good for per-cell constants like assigned_subclass)
+  # Repeat the first non-empty (non-NA, non-"") value for the whole column
+  # (good for per-cell constants like assigned_subclass)
   fill_first_nonempty <- function(x, default = NA_character_) {
     x_chr <- trimws(as.character(x))
     x_chr[x_chr == "" | tolower(x_chr) %in% c("na", "nan")] <- NA_character_
@@ -148,10 +148,10 @@ build_asp <- function(x,
     rep(use, length(x_chr))
   }
 
-  #' Carry last observation forward (LOCF) with a default for leading missing values.
-  #' - If the first value is missing/empty => set to default
-  #' - Then carry-forward through the vector
-  #' - Remaining NAs (if any) get default
+  # Carry last observation forward (LOCF) with a default for leading missing values.
+  # - If the first value is missing/empty => set to default
+  # - Then carry-forward through the vector
+  # - Remaining NAs (if any) get default
   fill_locf <- function(x, default, type = c("character", "numeric")) {
     type <- match.arg(type)
 

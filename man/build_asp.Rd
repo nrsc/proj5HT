@@ -14,7 +14,7 @@ build_asp(
   bl_window = c(-5, 0),
   save_srt = TRUE,
   plot_it = FALSE,
-  write_csv = FALSE,
+  write_csv = TRUE,
   csv_tag = "-asp.csv"
 )
 }
