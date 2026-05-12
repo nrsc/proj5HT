@@ -16,14 +16,39 @@ figure_df_build <- function() {
   # Within each cell, ensure every 2 s bin between the cell's first and last
   # bin is represented. Missing bins correspond to periods of no spiking and
   # are filled with `percent_change = 0` so they participate in the average
-  # rather than being silently dropped.
+  # rather than being silently dropped. We also backfill `time` from `x_bin`
+  # on the synthetic rows so downstream code that keys off `time` (e.g. the
+  # classifier) doesn't drop them as NA, and propagate per-cell-constant
+  # metadata columns (bath, puff, expCon, etc.) so the filled rows survive
+  # cohort filters like the `df0` selection below.
   fill_missing_bins <- function(df, bin_step = 2) {
+    cell_const_cols <- intersect(
+      c("Species", "assigned_subclass", "bath", "puff", "expCon",
+        "blockers", "Date", "cluster_Corr", "assigned_depth",
+        "LIMs_depth", "DFP", "depth_bin"),
+      names(df)
+    )
+
     df %>%
       dplyr::group_by(cell_name, assigned_subclass, Species) %>%
       tidyr::complete(
         x_bin = seq(min(x_bin), max(x_bin), by = bin_step),
-        fill = list(percent_change = 0)
+        fill  = list(percent_change = 0)
       ) %>%
+      dplyr::ungroup() %>%
+      # backfill time on synthetic rows
+      dplyr::mutate(time = ifelse(is.na(time), x_bin, time)) %>%
+      # forward/back-fill per-cell metadata so synthetic bins survive filters
+      dplyr::group_by(cell_name) %>%
+      dplyr::mutate(dplyr::across(
+        dplyr::all_of(cell_const_cols),
+        ~ {
+          v <- .
+          if (length(v) == 0) return(v)
+          ref <- v[!is.na(v)]
+          if (length(ref) == 0) v else { v[is.na(v)] <- ref[1]; v }
+        }
+      )) %>%
       dplyr::ungroup()
   }
 

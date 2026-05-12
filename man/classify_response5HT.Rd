@@ -11,6 +11,8 @@ classify_response5HT(
   thr_pct = 15,
   min_persist_s = 1,
   smooth_k = 5,
+  zero_thr_pct = 5,
+  min_zero_s = 0.5,
   carry_cols = NULL
 )
 }
@@ -28,6 +30,12 @@ classify_response5HT(
 \item{min_persist_s}{minimum contiguous duration (s), default \code{1}.}
 
 \item{smooth_k}{odd integer rolling-mean window, default \code{5}.}
+
+\item{zero_thr_pct}{\code{percent_change} below this is treated as silent
+(default \code{5}).}
+
+\item{min_zero_s}{minimum contiguous silent duration (s) to flag
+inhibition (default \code{0.5}).}
 
 \item{carry_cols}{columns to keep on the per-cell output. Auto-
 detected from \code{df} if \code{NULL}.}
@@ -60,6 +68,14 @@ to any of those dfs without a separate prep step.
 A "sustained excursion" is a contiguous run of smoothed
 \code{percent_change} that crosses \verb{100 ± thr_pct} for at least
 \code{min_persist_s} seconds inside the given window.
+
+In addition to the smoothed test, an unsmoothed \strong{zero-spiking} check
+is run: any contiguous run of raw \code{percent_change <= zero_thr_pct} (i.e.
+the cell stopped firing) lasting at least \code{min_zero_s} seconds inside
+a window forces the corresponding \verb{*_inh} flag to TRUE. This guarantees
+that a brief but unambiguous silent period is never missed by the
+smoother, so an otherwise excitatory cell with a transient silence at
+puff onset is correctly classified as biphasic.
 
 The biphasic order is decided by the order of the two extrema (max for
 excitation, min for inhibition) inside the full \code{combined_window}. The

@@ -54,3 +54,45 @@ make_synth_df <- function() {
     make_synth_cell("c_ie",   "biphasic_ie", assigned_subclass = "L5_ET")
   ))
 }
+
+# Cell that looks like a strong excitation but has a brief silent period at
+# puff onset (spiking shuts off for ~1.5 s, then rebounds high). Used to
+# verify the raw zero-spiking detector flips this from "excitation" to a
+# biphasic call.
+make_synth_silent_then_exc <- function(cell_name = "c_silent_exc",
+                                       t_step = 0.5) {
+  t   <- seq(-10, 50, by = t_step)
+  pct <- rep(100, length(t))
+  pct[t >= 0  & t <  1.5] <- 0      # brief silence at puff
+  pct[t >= 1.5 & t <= 30] <- 200    # large excitation
+  data.frame(
+    cell_name         = cell_name,
+    time              = t,
+    percent_change    = pct,
+    assigned_subclass = "L23_IT",
+    Species           = "Macaque",
+    x_bin             = floor(t / 2) * 2,
+    stringsAsFactors  = FALSE
+  )
+}
+
+# Pathological pattern: a single hard-zero sample at puff onset bracketed
+# by spiking and immediate high-rate rebound. With 2 s bin grids this is
+# easy for run-length detectors to miss (a one-sample run has duration 0).
+make_synth_single_zero_rebound <- function(cell_name = "c_one_zero",
+                                           bin_step  = 2) {
+  t <- seq(-10, 50, by = bin_step)
+  pct <- rep(110, length(t))           # baseline-ish spiking
+  pct[t == 0] <- 0                     # one hard zero at puff
+  pct[t > 0 & t <= 20] <- 280          # high rebound
+  pct[t > 20] <- 150
+  data.frame(
+    cell_name         = cell_name,
+    time              = t,
+    percent_change    = pct,
+    assigned_subclass = "L23_IT",
+    Species           = "Macaque",
+    x_bin             = floor(t / 2) * 2,
+    stringsAsFactors  = FALSE
+  )
+}

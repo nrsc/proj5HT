@@ -116,7 +116,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   ## ----------------------------------------------- 4-way response classifier
   per_cell <- classify_response5HT(
     dplyr::filter(dfs$df0, assigned_subclass %in% pyr3),
-    rapid_window    = c(0, 10),
+    rapid_window    = c(-1, 10),
     extended_window = c(10, 50),
     thr_pct         = 15,
     min_persist_s   = 1,
@@ -129,6 +129,24 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
     xlim  = c(-10, 50),
     ylim  = c(0, 300),
     title = "5HT puff — grouped by response classification"
+  )
+
+  # Per-cell inspector for QC of the "excitation" panel
+  figs$exc_inspector <- plot_excitatory_inspector(
+    dfs$df0, per_cell,
+    n_panels = 4,
+    xlim     = c(-10, 50),
+    ylim     = c(0, 350),
+    title    = "Classified excitation — per-cell QC"
+  )
+
+  # Diagnostic table: deepest dip inside each excitation-classified cell.
+  # Use this to spot cells whose silent period sits outside the classifier's
+  # rapid window (e.g. a 5 s metadata offset would put the dip at t ~ 5).
+  figs$exc_dips <- diagnose_excitation_dips(
+    dfs$df0, per_cell,
+    window       = c(-2, 15),
+    zero_thr_pct = 5
   )
 
   ## ------------------------------------------------- auxiliary figure scripts

@@ -47,3 +47,41 @@ test_that("classify_response5HT errors on missing required columns", {
   bad <- data.frame(cell_name = "x", time = 1:5)
   expect_error(classify_response5HT(bad), "percent_change")
 })
+
+test_that("brief silent period flips an excitatory call to biphasic", {
+  df <- make_synth_silent_then_exc()
+
+  per_cell <- classify_response5HT(
+    df,
+    rapid_window    = c(0, 10),
+    extended_window = c(10, 50),
+    thr_pct         = 15,
+    min_persist_s   = 1,
+    smooth_k        = 5,
+    zero_thr_pct    = 5,
+    min_zero_s      = 0.5
+  )
+
+  expect_equal(as.character(per_cell$response_type), "biphasic_inh_exc")
+  expect_true(per_cell$rapid_zero)
+  expect_true(per_cell$rapid_inh)
+  expect_true(per_cell$rapid_exc || per_cell$ext_exc)
+})
+
+test_that("a single hard-zero sample followed by high rebound flips to biphasic", {
+  df <- make_synth_single_zero_rebound()
+
+  per_cell <- classify_response5HT(
+    df,
+    rapid_window    = c(0, 10),
+    extended_window = c(10, 50),
+    thr_pct         = 15,
+    min_persist_s   = 1,
+    smooth_k        = 5,
+    zero_thr_pct    = 5,
+    min_zero_s      = 0.5
+  )
+
+  expect_equal(as.character(per_cell$response_type), "biphasic_inh_exc")
+  expect_true(per_cell$rapid_zero)
+})

@@ -18,6 +18,14 @@
 #' `percent_change` that crosses `100 ± thr_pct` for at least
 #' `min_persist_s` seconds inside the given window.
 #'
+#' In addition to the smoothed test, an unsmoothed **zero-spiking** check
+#' is run: any contiguous run of raw `percent_change <= zero_thr_pct` (i.e.
+#' the cell stopped firing) lasting at least `min_zero_s` seconds inside
+#' a window forces the corresponding `*_inh` flag to TRUE. This guarantees
+#' that a brief but unambiguous silent period is never missed by the
+#' smoother, so an otherwise excitatory cell with a transient silence at
+#' puff onset is correctly classified as biphasic.
+#'
 #' The biphasic order is decided by the order of the two extrema (max for
 #' excitation, min for inhibition) inside the full `combined_window`. The
 #' rapid window matters because it gives a stricter detection bar for
@@ -32,6 +40,10 @@
 #' @param thr_pct          excursion threshold (percent units), default `15`.
 #' @param min_persist_s    minimum contiguous duration (s), default `1`.
 #' @param smooth_k         odd integer rolling-mean window, default `5`.
+#' @param zero_thr_pct     `percent_change` below this is treated as silent
+#'                         (default `5`).
+#' @param min_zero_s       minimum contiguous silent duration (s) to flag
+#'                         inhibition (default `0.5`).
 #' @param carry_cols       columns to keep on the per-cell output. Auto-
 #'                         detected from `df` if `NULL`.
 #'
@@ -51,6 +63,8 @@ classify_response5HT <- function(df,
                                  thr_pct         = 15,
                                  min_persist_s   = 1,
                                  smooth_k        = 5,
+                                 zero_thr_pct    = 5,
+                                 min_zero_s      = 0.5,
                                  carry_cols      = NULL) {
 
   assert_has_cols(df, c("cell_name", "time", "percent_change"))
@@ -92,12 +106,35 @@ classify_response5HT <- function(df,
                                             thr      = thr_pct,
                                             min_persist_s = min_persist_s)
 
+      # ----- raw zero-spiking detector (bypasses smoothing) -----
+      # A sustained run of raw percent_change <= zero_thr_pct means the cell
+      # actually stopped firing. Smoothing can hide such brief silences, so
+      # we force the inhibition flag for whichever window the silence lies in.
+      rapid_zero <- .has_zero_run(t, y, rapid_window,
+                                  zero_thr_pct, min_zero_s)
+      ext_zero   <- .has_zero_run(t, y, extended_window,
+                                  zero_thr_pct, min_zero_s)
+      rapid_inh  <- rapid_inh || rapid_zero
+      ext_inh    <- ext_inh   || ext_zero
+
       any_exc <- rapid_exc || ext_exc
       any_inh <- rapid_inh || ext_inh
 
       # extrema in the combined window — used to order biphasic
       ex_max <- get_extreme_in_window(t, ys, combined_window, "max")
       ex_min <- get_extreme_in_window(t, ys, combined_window, "min")
+
+      # If the inhibition flag was set by a raw hard-zero rather than by a
+      # smoothed dip, the smoothed `ex_min` will not correspond to the true
+      # silent moment (the rollmean averages a single zero into its bright
+      # neighbours). Use the time of the earliest raw zero/near-zero sample
+      # instead, so biphasic ordering reflects the actual silence.
+      if (rapid_zero || ext_zero) {
+        zwin <- if (rapid_zero) rapid_window else extended_window
+        raw_zero_time <- .first_zero_time(t, y, zwin, zero_thr_pct,
+                                          hard_zero_pct = 1)
+        if (is.finite(raw_zero_time)) ex_min$time <- raw_zero_time
+      }
 
       response_type <- if (any_exc && any_inh) {
         # decide order by which extremum occurred first
@@ -125,6 +162,8 @@ classify_response5HT <- function(df,
         rapid_inh       = rapid_inh,
         ext_exc         = ext_exc,
         ext_inh         = ext_inh,
+        rapid_zero      = rapid_zero,
+        ext_zero        = ext_zero,
         exc_peak_time   = ex_max$time,
         exc_peak_pct    = ex_max$value,
         inh_peak_time   = ex_min$time,
@@ -155,6 +194,58 @@ classify_response5HT <- function(df,
     )
 }
 
+
+#' Time of the earliest raw zero / hard-zero sample inside a window
+#'
+#' Used to anchor biphasic ordering when the inhibition flag was set by
+#' [`.has_zero_run`] rather than by a smoothed dip.
+#'
+#' @keywords internal
+.first_zero_time <- function(t, y, window, zero_thr_pct, hard_zero_pct = 1) {
+  keep <- is.finite(t) & is.finite(y) &
+    t >= window[1] & t <= window[2]
+  t0 <- t[keep]; y0 <- y[keep]
+  if (length(t0) == 0) return(NA_real_)
+  hits <- which(y0 <= hard_zero_pct)
+  if (length(hits) == 0) hits <- which(y0 <= zero_thr_pct)
+  if (length(hits) == 0) return(NA_real_)
+  t0[hits[1]]
+}
+
+#' Detect a sustained near-zero run of raw `percent_change` inside a window
+#'
+#' Bypasses smoothing — used to catch brief silent periods that the rolling
+#' mean might wash out.
+#'
+#' Two paths flip the result to TRUE:
+#'   * a contiguous run of `y <= zero_thr_pct` lasting at least `min_zero_s`
+#'     (the standard persistence rule), OR
+#'   * any single raw sample at or below `hard_zero_pct` (default `1`). A
+#'     literal zero / near-zero in the trace is treated as unambiguous
+#'     evidence of silence — even one sample's worth — because it can't
+#'     plausibly be produced by noise. This catches cells that drop to a
+#'     single hard zero at puff onset and then rebound to a high firing
+#'     rate before the next sample (a pattern the run-length test misses
+#'     on coarse bin grids).
+#'
+#' @keywords internal
+.has_zero_run <- function(t, y, window, zero_thr_pct, min_zero_s,
+                          hard_zero_pct = 1) {
+  keep <- is.finite(t) & is.finite(y) &
+    t >= window[1] & t <= window[2]
+  t0 <- t[keep]; y0 <- y[keep]
+  if (length(t0) == 0) return(FALSE)
+
+  # 1. unambiguous hard zero — any single sample is enough
+  if (any(y0 <= hard_zero_pct, na.rm = TRUE)) return(TRUE)
+
+  if (length(t0) < 2) return(FALSE)
+
+  # 2. standard persistence rule for noisier near-zero dips
+  runs <- find_runs(t0, y0 <= zero_thr_pct)
+  if (nrow(runs) == 0) return(FALSE)
+  any(runs$dur >= min_zero_s, na.rm = TRUE)
+}
 
 #' Tie-breaker for biphasic ordering when both extrema are in the rapid window
 #' @keywords internal
