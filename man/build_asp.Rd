@@ -60,7 +60,7 @@ to \code{srt$rd} using \code{csv_tag}.}
 An ASP list (also stored at \code{srt$dfs$asp}) with components:
 \describe{
 \item{\code{cell}}{Cell name / identifier.}
-\item{\code{md}}{Row from \code{projHCT::sheets$MD} corresponding to \code{cell}.}
+\item{\code{md}}{Row from \code{headBCI::sheets$MD} corresponding to \code{cell}.}
 \item{\code{selected_MD}}{Subset of Master UI rows (\code{mMD}) corresponding to \code{cell}
 (may include multiple rows).}
 \item{\code{protocol_keys}}{Character vector of protocol keys created.}

@@ -21,6 +21,7 @@ Imports:
     readr,
     stringr,
     nphys,
+    headBCI,
     projHCT
 Suggests:
     knitr,

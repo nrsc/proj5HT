@@ -48,7 +48,7 @@
 #' @return An ASP list (also stored at `srt$dfs$asp`) with components:
 #' \describe{
 #'   \item{`cell`}{Cell name / identifier.}
-#'   \item{`md`}{Row from `projHCT::sheets$MD` corresponding to `cell`.}
+#'   \item{`md`}{Row from `headBCI::sheets$MD` corresponding to `cell`.}
 #'   \item{`selected_MD`}{Subset of Master UI rows (`mMD`) corresponding to `cell`
 #'     (may include multiple rows).}
 #'   \item{`protocol_keys`}{Character vector of protocol keys created.}
@@ -408,7 +408,7 @@ build_asp <- function(x,
   # -----------------------------
   # Load metadata
   # -----------------------------
-  MD <- projHCT::sheets$MD
+  MD <- headBCI::sheets$MD
 
   if (is.null(mMD)) {
     mMD <- readODS::read_ods(mMD_path, sheet = mMD_sheet)

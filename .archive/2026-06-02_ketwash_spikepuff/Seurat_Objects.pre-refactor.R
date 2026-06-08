@@ -38,7 +38,7 @@ SeuratHCT_offPipelineMacaque = function(save_object = TRUE #subclass = c('L5 IT'
   }
 
   # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "data.feather"))
+  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-400_map_full/", "data.feather"))
 
   # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
   dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]

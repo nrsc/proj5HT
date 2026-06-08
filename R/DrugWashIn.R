@@ -23,7 +23,7 @@ DrugWashIn <- function(x,
 
   stopifnot(is.list(x))
 
-  MD <- projHCT::sheets$MD
+  MD <- headBCI::sheets$MD
 
   # Preload master sheet once if not provided
   if (is.null(mMD)) {

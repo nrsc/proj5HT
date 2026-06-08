@@ -44,7 +44,7 @@ build_rmp <- function(x,
   cell <- srt$cell
 
   # ---- Load metadata ----
-  MD <- projHCT::sheets$MD
+  MD <- headBCI::sheets$MD
 
   if (is.null(mMD)) {
     mMD <- readODS::read_ods(mMD_path, sheet = mMD_sheet)

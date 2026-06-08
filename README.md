@@ -56,7 +56,7 @@ Almost every analysis function reaches into projHCT at run-time:
 
 | projHCT reference | Where it appears | What it provides |
 |---|---|---|
-| `projHCT::sheets$MD` | `compile5HT`, `data5HT`, `spikePuff`, `DrugWashIn`, `ketWashIn`, `build_asp`, `build_rmp`, `baseline_stim_5HTpuff` | The master metadata table for all patched cells (species, subclass, NWB path, depth, date, etc.). |
+| `projHCT::sheets$MD` | `compile5HT`, `data5HT`, `DrugWashIn`, `build_asp`, `build_rmp`, `baseline_stim_5HTpuff` | The master metadata table for all patched cells (species, subclass, NWB path, depth, date, etc.). |
 | `projHCT::sheets$map` | `data5HT` | NHP annotation / cell-mapping tables (used for cross-referencing cristina's L2/3 dataset). |
 | `projHCT::sheets$files$nnest_*` | `child_payload5HT` (`get_idx_map`) | Fast file-to-cell index maps so `load5HT` / `nnest5HT` can locate nnests without disk scanning. |
 | `projHCT::sheets$cleanMD` | `talk.Rmd` | A cleaned metadata frame used for presentations and Seurat integration. |
@@ -84,11 +84,9 @@ proj5HT/
 │   ├── child_payload5HT.R    ← nnest5HT / load5HT (parent–child wiring)
 │   ├── build_asp.R           ← Aligned Spike Protocol builder
 │   ├── build_rmp.R           ← Resting Membrane Potential builder
-│   ├── spikePuff.R           ← Legacy spike-puff analysis
 │   ├── spikePuff_from_asp.R  ← Spike-puff derived from ASP
-│   ├── DrugWashIn.R          ← Drug wash-in analysis
+│   ├── DrugWashIn.R          ← Drug wash-in analysis (covers Ket + WAY)
 │   ├── DrugWashIn_from_asp.R ← Drug wash-in derived from ASP
-│   ├── ketWashIn.R           ← Ketanserin wash-in analysis
 │   ├── compile5HT.R          ← Compile per-cell CSVs into project-wide frames
 │   ├── data5HT.R             ← Assemble dataframes (UI sheets + compiled data)
 │   ├── sheets5HT.R           ← Load/cache 5-HT-specific ODS sheets

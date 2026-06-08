@@ -23,7 +23,7 @@ spikePuff <- function(x,
   # -----------------------------
   # Load metadata tables (cheap)
   # -----------------------------
-  MD <- projHCT::sheets$MD
+  MD <- headBCI::sheets$MD
 
   if (is.null(mMD)) {
     mMD <- readODS::read_ods(mMD_path, sheet = mMD_sheet)
