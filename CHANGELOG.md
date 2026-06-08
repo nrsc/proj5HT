@@ -5,6 +5,54 @@
 
 ## Unreleased
 
+### 2026-06-08 — migrate parent nnest from projHCT (-hct.rds) to headBCI (-bci.rds)
+
+proj5HT no longer depends on projHCT for the parent-nnest lifecycle.
+The child payload (`-srt.rds`) is now built off the headBCI parent
+(`-bci.rds`) via `headBCI::bci_load()` / `headBCI::bci_nnest()`.
+
+- **`nnest5HT()`** — parent loader switched from
+  `projHCT::loadHCT(cell, "-hct.rds")` /
+  `projHCT::nnestHCT(cell)` to
+  `headBCI::bci_load(cell, parent_tag)` /
+  `headBCI::bci_nnest(cell)`, where
+  `parent_tag = headBCI::paramsBCI$tags$nnest` (`-bci.rds`). Local var
+  renamed `hct` → `parent`.
+- **`load5HT()`** — slow-rehydrate path now uses
+  `headBCI::bci_load(cell, parent_tag)` and writes `parent_tag` into
+  `child$parent$tag`. The no-child branch bootstraps via
+  `nnest5HT(cell)` (matching the fast-path behavior), fixing a silent
+  `NULL` return that blocked `update_5ht` for fresh cells.
+  Default `overwrite` now includes both `"ver"` (headBCI) and
+  `"version"` (legacy projHCT) header keys during the transition.
+- **`hct_header_fields()`** — accepts both `version` and `ver`.
+- **Path resolvers consolidated:**
+  - `find_hct_path_fast()` deleted (duplicate of `find_child_path_fast`).
+  - `resolve_hct_path()` renamed to `resolve_parent_path()`,
+    parameterized on `parent_tag`, source defaults to
+    `headBCI::paramsBCI$paths$rookery`.
+  - `get_parent_path_from_child()` parameterized on `parent_tag`.
+  - `find_child_path_fast()` source defaults to
+    `headBCI::paramsBCI$paths$rookery` (the resolved local path, not the
+    network token form stored in `paramsBCI$rookery`).
+- **`get_idx_map()`** — switched to
+  `headBCI::sheets$files$nnest_files` for `-bci.rds`. Child tags
+  (`-srt.rds`, `-osc.rds`) fall back to disk scan (no projHCT index
+  yet at the BCI level).
+- **`params5HT$tags$parent`** — `"-hct.rds"` → `"-bci.rds"`
+  (regenerated `data/params5HT.rda`).
+- **`run_asp_pipeline()`** — added full Roxygen block and `@export`
+  so the `update_5ht` startup driver can dispatch it.
+- **`analysisNaAvail.R`** — `projHCT::loadHCT(x, tag = "-srt.rds")`
+  → `load5HT(x, tag = "-srt.rds", rehydrate = FALSE)`.
+
+Verified end-to-end: `~/proj5HT/dev/startup.sh --no-git` processes all
+209 Master_UI cells (`ok=209 failed=0`); no `projHCT::` references
+remain in the nnest lifecycle path. Remaining `projHCT::` references in
+`R/` are scoped to NHP annotation tables in `data5HT.R`
+(`sheets$map$mapCellsNHP`, `sheets$map$NHP_anno`) — separate migration
+follow-up.
+
 ### 2026-06-04 — hier metadata normalization + Seurat figure refactor
 
 - **New `R/hier_metadata5HT.R` helpers** (all exported):

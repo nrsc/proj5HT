@@ -8,7 +8,7 @@ load5HT(
   x,
   tag = "-srt.rds",
   rehydrate = TRUE,
-  overwrite = c("cell", "wd", "rd", "md", "exp", "version", "files"),
+  overwrite = c("cell", "wd", "rd", "md", "exp", "ver", "version", "files"),
   verbose = TRUE
 )
 }

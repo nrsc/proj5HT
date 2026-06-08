@@ -8,7 +8,7 @@ signal <- reticulate::import("scipy.signal")
 
 if(is.character(x)){
   print(x)
-  srt = loadHCT(x, tag = "-srt.rds")
+  srt = load5HT(x, tag = "-srt.rds", rehydrate = FALSE)
 }else{
   srt = x
 }

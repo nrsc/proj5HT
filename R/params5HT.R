@@ -63,7 +63,7 @@ params5HT_build <- function(return = FALSE) {
 
     # ---- nnest tags ----
     tags = list(
-      parent  = "-hct.rds",
+      parent  = "-bci.rds",
       child   = "-srt.rds",
       puff    = "-srtPuff.csv",
       dwash   = "-srtDrugWash.csv",

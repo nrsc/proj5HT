@@ -98,10 +98,23 @@ in headBCI) but scoped to 5HT outputs.
 
 ## F. Cross-project alignment
 
-- [ ] Continue migration of `projHCT::sheets$MD` references in `R/` to
-      `headBCI::sheets$cleanMD` (still required by `data5HT.R`,
-      `child_payload5HT.R`). Track the 4-cell row delta noted in
+- [x] **2026-06-08** — Migrated proj5HT parent nnest from projHCT
+      (`-hct.rds`) to headBCI (`-bci.rds`). `nnest5HT` / `load5HT` /
+      path resolvers no longer reference `projHCT::`. See CHANGELOG
+      `2026-06-08 — migrate parent nnest...`.
+- [ ] Migrate the remaining `projHCT::sheets$map$mapCellsNHP` and
+      `projHCT::sheets$map$NHP_anno` references in `R/data5HT.R` to
+      `headBCI::sheets` equivalents (or absorb the NHP annotation
+      mapping into headBCI). Track the 4-cell row delta noted in
       `manu/README.md` once consistent.
+- [ ] Rename helpers that still carry "hct" in their names
+      (`hct_header_fields`, `hct_header`, `apply_hct_header`) to
+      `parent_header_*`. Mechanical rename; ripples to every call site
+      in `child_payload5HT.R`.
+- [ ] Index `-srt.rds` / `-osc.rds` files at the headBCI level
+      (`headBCI::sheets$files$nnest_srt_files` etc.) so `get_idx_map`
+      doesn't fall back to disk scan for child tags. headBCI-side
+      change.
 - [ ] Consider registering proj5HT as a `bci_register_project()` user
       and converting `build_asp` / `build_rmp` / `DrugWashIn` to
       `bci_register_step()` steps — final step of the proj5HT →

@@ -7,7 +7,9 @@
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # What HCT fields are considered "header truth"?
-hct_header_fields <- function() c("cell","wd","rd","md","exp","version","files")
+# (Accepts both `version` (legacy projHCT) and `ver` (headBCI) for the
+# transition; downstream code reads whichever is present.)
+hct_header_fields <- function() c("cell","wd","rd","md","exp","ver","version","files")
 
 hct_header <- function(hct, fields = hct_header_fields()) {
   stopifnot(is.list(hct))
@@ -56,30 +58,26 @@ parent_state_equal <- function(a, b) {
     identical(a$mtime, b$mtime)
 }
 
-# Use the same logic as loadHCT "FAST PATH" but return *path* (no readRDS)
-find_hct_path_fast <- function(cell) {
-  map <- get_idx_map("-hct.rds")
-  if (!is.null(map) && cell %in% names(map)) {
-    p <- map[[cell]]
-    if (file.exists(p)) return(p)
-  }
-  NA_character_
-}
+# Resolve the on-disk path of the parent nnest for a cell, in three tiers:
+#  1) explicit pointer in the child object,
+#  2) cached index lookup (no file read),
+#  3) disk scan under the BCI rookery.
+resolve_parent_path <- function(child, cell,
+                                parent_tag = headBCI::paramsBCI$tags$nnest,
+                                source     = headBCI::paramsBCI$paths$rookery) {
+  parent_tag <- normalize_tag(parent_tag)
 
-
-
-resolve_hct_path <- function(child, cell, source = projHCT::params$rookery) {
   # 1) trust explicit pointer in child (best)
   p <- child$parent$path %||% child$parent$nnest
   if (is.character(p) && length(p) == 1 && file.exists(p)) return(p)
 
   # 2) fast index lookup (no file read)
-  p2 <- find_hct_path_fast(cell)
+  p2 <- find_child_path_fast(cell, parent_tag, source = source)
   if (!is.na(p2) && file.exists(p2)) return(p2)
 
   # 3) optional fallback disk search (slower, but still no readRDS)
   cell_pat <- gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", cell)
-  pat <- paste0(cell_pat, "-hct\\.rds$")
+  pat <- paste0(cell_pat, parent_tag, "$")
   lf <- list.files(source, pattern = pat, recursive = TRUE, full.names = TRUE)
   lf <- unique(lf[file.exists(lf)])
   if (!length(lf)) return(NA_character_)
@@ -87,20 +85,21 @@ resolve_hct_path <- function(child, cell, source = projHCT::params$rookery) {
 }
 
 
-get_parent_path_from_child <- function(child, cell) {
+get_parent_path_from_child <- function(child, cell,
+                                       parent_tag = headBCI::paramsBCI$tags$nnest) {
   # prefer the authoritative pointer you already store
   p <- child$parent$path %||% child$parent$nnest
   if (!is.null(p) && is.character(p) && length(p) == 1) return(p)
 
   # fallback: infer from rd/cell
   if (!is.null(child$rd) && !is.null(cell)) {
-    return(file.path(child$rd, paste0(cell, "-hct.rds")))
+    return(file.path(child$rd, paste0(cell, normalize_tag(parent_tag))))
   }
   NA_character_
 }
 
 # returns the on-disk path for a given cell+tag without readRDS()
-find_child_path_fast <- function(cell, tag, source = projHCT::params$rookery) {
+find_child_path_fast <- function(cell, tag, source = headBCI::paramsBCI$paths$rookery) {
 
   tag <- normalize_tag(tag)
 
@@ -139,11 +138,12 @@ get_idx_map <- function(tag) {
     return(get(key, envir = .local_cache))
   }
 
+  # headBCI is the canonical source for the parent-nnest index. Child-tag
+  # indexes (-srt/-osc) are not maintained at the BCI level yet; callers
+  # fall back to a disk scan via find_child_path_fast() when this returns NULL.
   idx <- switch(
     tag,
-    "-srt.rds" = projHCT::sheets$files$nnest_srt_files,
-    "-osc.rds" = projHCT::sheets$files$nnest_osc_files,
-    "-hct.rds" = projHCT::sheets$files$nnest_files,
+    "-bci.rds" = headBCI::sheets$files$nnest_files,
     NULL
   )
 
@@ -192,20 +192,23 @@ nnest5HT <- function(
   # ---- normalize tag_child safely ----
   tag_child <- normalize_tag(tag_child)
 
-  # ---- load / ensure parent HCT header truth ----
-  hct <- loadHCT(cell, tag = "-hct.rds")
-  if (is.null(hct)) {
-    msg("No HCT header found for ", cell, " — building via nnestHCT()")
-    hct <- nnestHCT(cell)
-    if (is.null(hct)) stop("failed_to_build_hct for cell: ", cell)
+  # ---- load / ensure parent BCI header truth ----
+  # headBCI replaces projHCT as the parent-nnest provider for new cells
+  # (see headBCI AGENTS.md: "headBCI absorbs the parent-nnest role").
+  parent_tag <- headBCI::paramsBCI$tags$nnest        # e.g. "-bci.rds"
+  parent <- headBCI::bci_load(cell, tag = parent_tag, verbose = FALSE)
+  if (is.null(parent)) {
+    msg("No BCI parent nnest for ", cell, " — building via headBCI::bci_nnest()")
+    parent <- headBCI::bci_nnest(cell)
+    if (is.null(parent)) stop("failed_to_build_bci_parent for cell: ", cell)
   }
 
   # header (static truth)
-  header <- hct_header(hct)
+  header <- hct_header(parent)
   header$files <- header$files %||% list()
 
   # canonical header nnest path
-  header_nnest_path <- file.path(header$rd, paste0(cell, "-hct.rds"))
+  header_nnest_path <- file.path(header$rd, paste0(cell, parent_tag))
   header$files$nnest <- header$files$nnest %||% header_nnest_path
 
   # ---- define where the child payload lives ----
@@ -229,7 +232,7 @@ nnest5HT <- function(
 
     parent  = list(
       cell = cell,
-      tag  = "-hct.rds",
+      tag  = parent_tag,
       path = parent_path
     ),
 
@@ -305,13 +308,16 @@ load5HT <- function(
     x,
     tag = "-srt.rds",
     rehydrate = TRUE,
-    overwrite = c("cell","wd","rd","md","exp","version","files"),
+    overwrite = c("cell","wd","rd","md","exp","ver","version","files"),
     verbose = TRUE
 ) {
   msg <- function(...) if (isTRUE(verbose)) message(...)
 
   # normalize tag
   tag <- normalize_tag(tag)
+
+  # parent-nnest tag (headBCI is now the parent provider)
+  parent_tag <- headBCI::paramsBCI$tags$nnest
 
   # ---- helper: infer cell name from inputs ----
   infer_cell <- function(x) {
@@ -372,16 +378,13 @@ load5HT <- function(
       stop("load5HT: could not determine cell name from x")
     }
 
-    # hct <- loadHCT(cell, tag = "-hct.rds")
-    # if (is.null(hct)) {
-    #   msg("No HCT header found for ", cell)
-    #   return(NULL)
-    # }
-
     child_path <- find_child_path_fast(cell, tag)
-    if (!file.exists(child_path)) {
-      msg("No child file found: ", child_path)
-      return(NULL)
+    if (!is.character(child_path) || length(child_path) != 1 || !file.exists(child_path)) {
+      # Match the fast-path behavior: bootstrap a fresh child via nnest5HT()
+      # so a missing -srt.rds doesn't silently produce NULL for brand-new
+      # cells (those processed by update_bci but not yet by update_5ht).
+      msg("No child file found: ", child_path, " \u2014 bootstrapping via nnest5HT()")
+      return(nnest5HT(cell))
     }
     child <- readRDS(child_path)
   }
@@ -389,34 +392,34 @@ load5HT <- function(
   # ---- rehydrate header truth into child (recommended) ----
   if (isTRUE(rehydrate)) {
 
-    # --- fast gate: check parent hct file state WITHOUT loading the header object ---
-    parent_path <- resolve_hct_path(child, cell)
+    # --- fast gate: check parent file state WITHOUT loading the header object ---
+    parent_path <- resolve_parent_path(child, cell, parent_tag = parent_tag)
 
     if (!is.na(parent_path) && file.exists(parent_path)) {
       current_state <- parent_state_from_file(parent_path)
       stored_state  <- child$parent_state %||% NULL
 
       if (parent_state_equal(stored_state, current_state)) {
-        # Parent header truth unchanged → return child as-is (no loadHCT, no overwrite)
+        # Parent header truth unchanged → return child as-is (no parent load, no overwrite)
         return(child)
       }
     }
 
-    # --- slow path: parent changed or unknown → load & rehydrate ---
-    hct <- loadHCT(cell, tag = "-hct.rds")
-    if (!is.null(hct)) {
+    # --- slow path: parent changed or unknown → load BCI parent & rehydrate ---
+    parent <- headBCI::bci_load(cell, tag = parent_tag, verbose = FALSE)
+    if (!is.null(parent)) {
 
-      nm <- intersect(overwrite, intersect(names(child), names(hct)))
-      if (length(nm)) child[nm] <- hct[nm]
+      nm <- intersect(overwrite, intersect(names(child), names(parent)))
+      if (length(nm)) child[nm] <- parent[nm]
 
-      missing <- setdiff(intersect(overwrite, names(hct)), names(child))
-      if (length(missing)) child[missing] <- hct[missing]
+      missing <- setdiff(intersect(overwrite, names(parent)), names(child))
+      if (length(missing)) child[missing] <- parent[missing]
 
       child$child_files <- child$child_files %||% list()
-      child$child_files$nnest <- file.path(hct$rd, paste0(cell, tag))
+      child$child_files$nnest <- file.path(parent$rd, paste0(cell, tag))
 
-      # ---- parent pointers: reuse parent_path; fall back to canonical hct path ----
-      canonical_parent_path <- file.path(hct$rd, paste0(cell, "-hct.rds"))
+      # ---- parent pointers: reuse parent_path; fall back to canonical parent path ----
+      canonical_parent_path <- file.path(parent$rd, paste0(cell, parent_tag))
       if (is.na(parent_path) || !nzchar(parent_path) || !file.exists(parent_path)) {
         parent_path <- canonical_parent_path
       }
@@ -424,12 +427,12 @@ load5HT <- function(
       child$parent <- child$parent %||% list()
       child$parent$path  <- parent_path
       child$parent$nnest <- parent_path
-      child$parent$tag   <- "-hct.rds"
+      child$parent$tag   <- parent_tag
 
       child$project <- child$project %||% "5HT"
       child$module  <- child$module  %||% "srt"
 
-      # refresh fingerprint using the same parent_path (no extra resolve_hct_path call)
+      # refresh fingerprint using the same parent_path (no extra resolve call)
       if (!is.na(parent_path) && file.exists(parent_path)) {
         child$parent_state <- parent_state_from_file(parent_path)
       }
