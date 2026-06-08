@@ -22,7 +22,7 @@ data5HT = function(){
     macaque_ui_data = sMdta,
     human_ui_data = sHdta,
     all_ui_data = mMD,
-    ui_cells_MD = projHCT::sheets$MD[projHCT::sheets$MD$cell_name %in% mMD$cell_name,]
+    ui_cells_MD = headBCI::sheets$MD[headBCI::sheets$MD$cell_name %in% mMD$cell_name,]
   )
 
   # Compiled dataframes from analysis
@@ -32,7 +32,7 @@ data5HT = function(){
 
 
   #cell_list_L5_corr = read.csv("data-raw/cell_list_L5_corr.csv")### Don't know where this came from
-  #cell_list_L5_corr$patched_cell_container %in% projHCT::sheets$MD$patched_cell_container
+  #cell_list_L5_corr$patched_cell_container %in% headBCI::sheets$MD$patched_cell_container
 
   ## Map out the annotation data for cristinas
   dfs$map = list(

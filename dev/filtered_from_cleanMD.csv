@@ -1,0 +1,195 @@
+"cell_name","Species","Date","User","Experiment","protocols","slice_type","Cortical_area","Brain_Region","nwb_file","pxp_file"
+"QN22.26.038.20.01.01","M.nemestrina",2022-11-29,"Alejandro","Patch-seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"QN23.26.010.20.11.01","M.nemestrina",2023-03-29,"Alejandro","Patch-seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"QN23.26.010.20.CW05.01","M.nemestrina",2023-03-31,"Alejandro","Patch-seq",NA,"NHPculture","TCx","Temporal",NA,NA
+"QN23.26.012.20.21.02","M.nemestrina",2023-05-23,"Alejandro","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN23.26.012.20.22.01","M.nemestrina",2023-05-23,"Alejandro","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN23.26.013.20.11.01","M.nemestrina",2023-05-30,"Alejandro","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN23.26.013.20.13.01","M.nemestrina",2023-05-30,"Alejandro","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN23.26.014.20.20.01","M.nemestrina",2023-06-07,"Alejandro","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.014.20.22.04","M.nemestrina",2023-06-07,"Alejandro","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.015.20.20.01","M.nemestrina",2023-06-22,"Alejandro","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN23.26.015.20.CX26.01","M.nemestrina",2023-06-28,"Alejandro","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.016.20.20.03","M.nemestrina",2023-07-25,"Alejandro","Patch-seq","basic props (variable thresh)","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.23.04","M.nemestrina",2023-07-25,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.24.05","M.nemestrina",2023-07-25,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.25.01","M.nemestrina",2023-07-26,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.26.02","M.nemestrina",2023-07-26,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.CX01.02","M.nemestrina",2023-07-27,"Alejandro","Patch-seq","FI,VI,Chirp","NHPculture","TCx","ITG",NA,NA
+"QN23.26.016.20.CX09.01","M.nemestrina",2023-07-28,"Alejandro","Patch-seq","FI,VI,Chirp","NHPculture","TCx","ITG",NA,NA
+"QN23.26.017.20.20.01","M.nemestrina",2023-08-02,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","STG",NA,NA
+"QN23.26.017.20.20.02","M.nemestrina",2023-08-02,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","STG",NA,NA
+"QN23.26.017.20.22.02","M.nemestrina",2023-08-02,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","STG",NA,NA
+"QN23.26.017.20.23.01","M.nemestrina",2023-08-02,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","TCx","STG",NA,NA
+"QN23.26.018.20.21.01","M.nemestrina",2023-08-08,"Alejandro","Patch-seq","FI,VI,Chirp","NHPacute","MCx","M1",NA,NA
+"Q19.26.02.99.05.03.01.02","M.nemestrina",2019-06-04,"Brian","Patch-seq",NA,"NHPculture","MCx","M1",NA,NA
+"Q19.26.02.99.05.03.01.03","M.nemestrina",2019-06-04,"Brian","Patch-seq",NA,"NHPculture","MCx","M1",NA,NA
+"Q19.26.018.1A.01.01","M.nemestrina",2019-11-11,"Brian","Patch-seq",NA,"NHPculture","MCx","M1",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2019/Q19.26.018/Q19.26.018.1A.01.01.pxp"
+"Q21.26.018.1A.06.03","M.nemestrina",2021-06-16,"Brian","Patch-seq",NA,"NHPculture","MCx","SFG",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2021/Q21.26.018/Q21.26.018.1A.06.03.pxp"
+"Q21.26.019.1A.26.01","M.mulatta",2021-06-24,"Brian","Patch-seq","noise","NHPculture","TCx","ITG",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2021/Q21.26.019/Q21.26.019.1A.26.01.pxp"
+"QN24.26.001.4A.09.01","M.nemestrina",2024-01-31,"Brian","Patch-seq",NA,"NHPculture","TCx","ITG",NA,NA
+"QN24.26.001.4A.09.03","M.nemestrina",2024-01-31,"Brian","Patch-seq",NA,"NHPculture","TCx","ITG",NA,NA
+"QN24.26.001.4A.09.04","M.nemestrina",2024-01-31,"Brian","Patch-seq","total K","NHPculture","TCx","ITG",NA,NA
+"QF25.26.015.12.02.02","M.fascicularis",2025-09-17,"Brian","entrainment",NA,"NHPculture","MCx","M1",NA,NA
+"QM25.26.013.15m.05.01.01","M.mulatta",NA,"Brian",NA,NA,"NHPculture","hippocampus","hippocampus",NA,NA
+"QM25.26.013.15m.05.01.02","M.mulatta",NA,"Brian",NA,NA,"NHPculture","hippocampus","hippocampus",NA,NA
+"QM25.26.013.15m.05.01.03","M.mulatta",NA,"Brian",NA,NA,"NHPculture","hippocampus","hippocampus",NA,NA
+"Q20.26.007.11.05.01.01","M.mulatta",2020-06-11,"Cristina","Multi-Patch-Seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"Q20.26.007.11.05.01.04","M.mulatta",2020-06-11,"Cristina","Multi-Patch-Seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"Q20.26.008.11.06.02.04","M.nemestrina",2020-06-17,"Cristina","Multi-Patch-Seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"Q20.26.008.11.06.02.07","M.nemestrina",2020-06-17,"Cristina","Multi-Patch-Seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"Q21.26.009.11.02.01","M.nemestrina",2021-04-14,"Cristina","neuromodulation",NA,"NHPacute","TCx","STG",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2021/Q21.26.009/Q21.26.009.11.02.01.pxp"
+"Q21.26.009.11.02.03","M.nemestrina",2021-04-14,"Cristina","neuromodulation",NA,"NHPacute","TCx","STG",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2021/Q21.26.009/Q21.26.009.11.02.03.pxp"
+"Q21.26.021.1A.03.02.01","M.nemestrina",2021-07-07,"Cristina","Multi-Patch-Seq",NA,"NHPculture","TCx","ITG",NA,NA
+"QN24.26.017.20.CW16.01","M.nemestrina",2024-11-14,"Jeffrey","Patch-seq","basic props, neuromodulation","NHPculture","TCx","STG",NA,NA
+"QN24.26.017.20.CW10.01","M.nemestrina",2024-11-15,"Jeffrey","Patch-seq","basic props","NHPculture","TCx","STG",NA,NA
+"QN24.26.017.20.25.01","M.nemestrina",2024-11-23,"Jeffrey","Patch-seq","basic props, neuromodulation","NHPacute","TCx","STG",NA,NA
+"QN25.26.001.20.CW05.02","M.nemestrina",2025-01-25,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.002.20.26.02","M.nemestrina",2025-02-12,"Jeffrey","Patch-seq","basic props","NHPacute","FCx","ACx",NA,NA
+"QN25.26.002.20.CW06.02","M.nemestrina",2025-02-16,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.003.20.CW05.01","M.nemestrina",2025-02-21,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.004.20.27.03","M.nemestrina",2025-03-05,"Jeffrey","Patch-seq","basic props","NHPacute","FCx","ACx",NA,NA
+"QN25.26.004.20.CW18.01","M.nemestrina",2025-03-08,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.004.20.CW13.01","M.nemestrina",2025-03-09,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.004.20.CW14.01","M.nemestrina",2025-03-09,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.004.20.CW08.01","M.nemestrina",2025-03-11,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.004.20.CW08.02","M.nemestrina",2025-03-11,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"QN25.26.005.20.CW03.02","M.nemestrina",2025-03-12,"Jeffrey","Patch-seq","basic props","NHPculture","FCx","ACx",NA,NA
+"Q20.26.005.1A.04.01","M.nemestrina",2020-05-04,"Jonathan","Patch-seq",NA,"NHPculture","MCx","M1-trunk",NA,NA
+"QN22.26.022.5A.01.01","M.nemestrina",2022-06-28,"Kamilliam","Patch-seq",NA,"NHPculture","MCx","SFG",NA,NA
+"QN22.26.022.5A.01.04","M.nemestrina",2022-06-28,"Kamilliam","Patch-seq",NA,"NHPculture","MCx","SFG",NA,NA
+"QN22.26.022.5A.09.02","M.nemestrina",2022-06-29,"Kamilliam","Patch-seq",NA,"NHPculture","MCx","SFG",NA,NA
+"QM21.26.025.1A.03.01","M.mulatta",2021-08-19,"Lindsay","Patch-seq",NA,"NHPculture","MCx","SFG",NA,NA
+"QM21.26.025.1A.03.02","M.mulatta",2021-08-19,"Lindsay","Patch-seq",NA,"NHPculture","MCx","SFG",NA,NA
+"QN24.26.001.20.CW01.01","M.nemestrina",2024-01-31,"Meanhwan","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.001.20.CW02.01","M.nemestrina",2024-02-01,"Meanhwan","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.002.20.CW01.01","M.nemestrina",2024-02-14,"Meanhwan","Patch-seq",NA,"NHPculture","MCx","M1",NA,NA
+"QN24.26.003.20.04.01","M.nemestrina",2024-02-15,"Meanhwan","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.003.20.CW02.01","M.nemestrina",2024-02-16,"Meanhwan","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.004.20.04.01","M.nemestrina",2024-02-29,"Meanhwan","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.004.20.CW01.01","M.nemestrina",2024-03-01,"Meanhwan","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.004.20.CW02.01","M.nemestrina",2024-03-04,"Meanhwan","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN21.26.031.20.03.02","M.nemestrina",2021-11-22,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QM21.26.032.20.01.02","M.mulatta",2021-12-03,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QM21.26.032.20.02.01","M.mulatta",2021-12-03,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QM21.26.032.20.05.01","M.mulatta",2021-12-03,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QM22.26.003.20.01.01","M.mulatta",2022-02-23,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QM22.26.003.20.04.01","M.mulatta",2022-02-24,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QM22.26.003.20.CW2.01","M.mulatta",2022-02-25,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QM22.26.003.20.CW3.01","M.mulatta",2022-02-25,"Nikolai","Patch-seq","basic Props","NHPculture","TCx","STG",NA,NA
+"QN22.26.010.20.11.01","M.nemestrina",2022-03-23,"Nikolai","Patch-seq",NA,"NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.011.20.01.01","M.nemestrina",2022-03-30,"Nikolai","Patch-seq",NA,"NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.011.20.02.01","M.nemestrina",2022-03-30,"Nikolai","Patch-seq",NA,"NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.013.20.05.01","M.nemestrina",2022-04-07,"Nikolai","Patch-seq","g-F (1 and 5 ms tau)","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.014.20.11.01","M.nemestrina",2022-04-12,"Nikolai","Patch-seq","basic props only","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.017.20.04.01","M.nemestrina",2022-05-18,"Nikolai","Patch-seq","Fs (5 and 1 ms)","NHPacute","TCx","Temporal",NA,NA
+"QN22.26.017.20.08.01","M.nemestrina",2022-05-18,"Nikolai","Patch-seq","Fs (5 and 1 ms)","NHPacute","TCx","Temporal",NA,NA
+"QN22.26.019.20.01.01","M.nemestrina",2022-05-26,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.019.20.03.01","M.nemestrina",2022-05-26,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.019.20.03.02","M.nemestrina",2022-05-26,"Nikolai","Patch-seq","g-F (1 and 5 ms tau)","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.019.20.CW2.01","M.nemestrina",2022-05-27,"Nikolai","Patch-seq","gain-Freq, noise","NHPculture","MCx","M1",NA,NA
+"QN22.26.020.20.03.01","M.nemestrina",2022-06-07,"Nikolai","Patch-seq","BasicProps","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.021.20.03.01","M.nemestrina",2022-06-22,"Nikolai","Patch-seq","BasicProps","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.025.1A.01.01","M.nemestrina",2022-07-14,"Nikolai","Patch-seq","basic props","NHPculture","TCx","ITG",NA,NA
+"QN22.26.025.1A.01.02","M.nemestrina",2022-07-14,"Nikolai","Patch-seq","basic props","NHPculture","TCx","ITG",NA,NA
+"QN22.26.025.1A.01.03","M.nemestrina",2022-07-14,"Nikolai","Patch-seq","basic props","NHPculture","TCx","ITG",NA,NA
+"QN22.26.026.20.01.01","M.nemestrina",2022-07-20,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.026.20.02.01","M.nemestrina",2022-07-20,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.028.20.01.02","M.nemestrina",2022-08-03,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.028.20.02.01","M.nemestrina",2022-08-03,"Nikolai","Patch-seq","basic props and bAPs","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.028.20.CW3.01","M.nemestrina",2022-08-04,"Nikolai","Patch-seq","basic props/bAPs","NHPculture","MCx","M1-trunk",NA,NA
+"QM22.26.030.20.02.01","M.mulatta",2022-08-16,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QM22.26.030.20.03.01","M.mulatta",2022-08-16,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.033.20.01.02","M.nemestrina",2022-10-06,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN22.26.033.20.03.02","M.nemestrina",2022-10-06,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN22.26.036.20.05.01","M.nemestrina",2022-11-02,"Nikolai","Patch-seq",NA,"NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN22.26.037.20.01.01","M.nemestrina",2022-11-30,"Nikolai","Patch-seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"QN22.26.037.20.02.01","M.nemestrina",2022-11-30,"Nikolai","Patch-seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"QN22.26.037.20.05.01","M.nemestrina",2022-12-01,"Nikolai","Patch-seq",NA,"NHPacute","TCx","Temporal",NA,NA
+"QN23.26.001.20.01.01","M.nemestrina",2023-02-02,"Nikolai","Patch-seq","uninfected","NHPacute","TCx","STG",NA,NA
+"QN23.26.001.20.CW01.02","M.nemestrina",2023-02-03,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.001.20.CW01.03","M.nemestrina",2023-02-03,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.001.20.CW01.04","M.nemestrina",2023-02-03,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.001.20.CW01.05","M.nemestrina",2023-02-03,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.002.20.04.01","M.nemestrina",2023-02-07,"Nikolai","Patch-seq","NO RECORDING, just nucleus","NHPacute","MCx","M1",NA,NA
+"QN23.26.002.20.07.01","M.nemestrina",2023-02-08,"Nikolai","Patch-seq","basic props, g-F (1 & 5 ms), FIs noise","NHPacute","MCx","M1",NA,NA
+"QN23.26.002.20.CW01.01","M.nemestrina",2023-02-09,"Nikolai","Patch-seq","basic props","NHPculture","MCx","M1",NA,NA
+"QN23.26.002.20.CW02.01","M.nemestrina",2023-02-09,"Nikolai","Patch-seq","basic props, g-F (1 & 5 ms, 10/20/30/40 Hz), FIs noise","NHPculture","MCx","M1",NA,NA
+"QN23.26.002.20.CW04.01","M.nemestrina",2023-02-10,"Nikolai","Patch-seq","basic props","NHPculture","MCx","M1",NA,NA
+"QN23.26.005.20.01.01","M.nemestrina",2023-03-14,"Nikolai","Patch-seq","basic props only","NHPacute","TCx","STG",NA,NA
+"QN23.26.005.20.03.01","M.nemestrina",2023-03-14,"Nikolai","Patch-seq","basic props & FIs with noise","NHPacute","TCx","STG",NA,NA
+"QN23.26.012.20.01.01","M.nemestrina",2023-05-23,"Nikolai",NA,"basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.012.20.01.02","M.nemestrina",2023-05-23,"Nikolai",NA,"basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.012.20.02.01","M.nemestrina",2023-05-23,"Nikolai",NA,"basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.012.20.02.03","M.nemestrina",2023-05-23,"Nikolai",NA,"basic props","NHPacute","TCx","STG",NA,NA
+"QN23.26.013.20.01.02","M.nemestrina",2023-05-30,"Nikolai","Patch-seq","basic props","NHPacute","TCx","ITG",NA,NA
+"QN23.26.013.20.01.03","M.nemestrina",2023-05-30,"Nikolai","Patch-seq","basic props","NHPacute","TCx","ITG",NA,NA
+"QN23.26.013.20.02.01","M.nemestrina",2023-05-30,"Nikolai","Patch-seq","basic props & FIs with noise","NHPacute","TCx","ITG",NA,NA
+"QN23.26.013.20.05.01","M.nemestrina",2023-05-30,"Nikolai","Patch-seq","basic props","NHPacute","TCx","ITG",NA,NA
+"QN23.26.014.20.01.01","M.nemestrina",2023-06-07,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN23.26.014.20.01.02","M.nemestrina",2023-06-07,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN23.26.014.20.06.01","M.nemestrina",2023-06-08,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN23.26.014.20.07.01","M.nemestrina",2023-06-08,"Nikolai","Patch-seq","basic props","NHPacute","MCx","M1-hand-wrist",NA,NA
+"QN23.26.014.20.25.01","M.nemestrina",2023-06-08,"Nikolai","Patch-seq","basic props, imaging bAPs","NHPacute","TCx","STG",NA,NA
+"QN23.26.016.20.03.01","M.nemestrina",2023-07-25,"Nikolai","Patch-seq","basic props","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.04.01","M.nemestrina",2023-07-25,"Nikolai","Patch-seq","basic props + Ca++ imaging","NHPacute","TCx","ITG",NA,NA
+"QN23.26.016.20.05.01","M.nemestrina",2023-07-26,"Nikolai","Patch-seq","basic props + Ca++ imaging","NHPacute","TCx","ITG",NA,NA
+"QN23.26.017.20.01.02","M.nemestrina",2023-08-02,"Nikolai","Patch-seq","basic props and Ca++ imaging at L1","NHPacute","TCx","STG",NA,NA
+"QN23.26.017.20.03.01","M.nemestrina",2023-08-02,"Nikolai","Patch-seq","basic props (variable thresh)","NHPacute","TCx","STG",NA,NA
+"QN23.26.020.20.01.01","M.nemestrina",2023-11-29,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.020.20.02.01","M.nemestrina",2023-11-29,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.020.20.02.02","M.nemestrina",2023-11-29,"Nikolai","Patch-seq","chirps, spikes only","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.020.20.CW06.01","M.nemestrina",2023-11-30,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.020.20.CW05.01","M.nemestrina",2023-12-01,"Nikolai","Patch-seq",NA,"NHPculture","TCx","STG",NA,NA
+"QN23.26.021.20.01.01","M.nemestrina",2023-12-20,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.021.20.01.02","M.nemestrina",2023-12-20,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.021.20.02.01","M.nemestrina",2023-12-20,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN23.26.021.20.03.01","M.nemestrina",2023-12-20,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.001.20.02.02","M.nemestrina",2024-01-30,"Nikolai","Patch-seq","stand props","NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.001.20.03.02","M.nemestrina",2024-01-31,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.001.20.CW05.01","M.nemestrina",2024-02-02,"Nikolai","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.002.20.01.01","M.nemestrina",2024-02-13,"Nikolai",NA,NA,"NHPacute","MCx","M1",NA,NA
+"QN24.26.003.20.02.01","M.nemestrina",2024-02-15,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.003.20.05.01","M.nemestrina",2024-02-16,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.003.20.06.01","M.nemestrina",2024-02-16,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.003.20.CW01.01","M.nemestrina",2024-02-19,"Nikolai","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.004.20.01.01","M.nemestrina",2024-02-29,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.004.20.02.01","M.nemestrina",2024-02-29,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.004.20.02.02","M.nemestrina",2024-02-29,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.004.20.03.01","M.nemestrina",2024-02-29,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.004.20.14.01","M.nemestrina",2024-03-01,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.005.20.01.01","M.nemestrina",2024-03-27,"Nikolai","Patch-seq","basic props","NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.005.20.02.01","M.nemestrina",2024-03-27,"Nikolai","Patch-seq","basic props","NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.005.20.02.02","M.nemestrina",2024-03-27,"Nikolai","Patch-seq","basic props","NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.005.20.03.02","M.nemestrina",2024-03-28,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN24.26.005.20.CW01.02","M.nemestrina",2024-04-01,"Nikolai","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.005.20.CW02.01","M.nemestrina",2024-04-02,"Nikolai","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"QN24.26.008.20.03.01","M.nemestrina",2024-04-24,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.008.20.04.01","M.nemestrina",2024-04-25,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.010.20.01.02","M.nemestrina",2024-06-27,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.010.20.03.01","M.nemestrina",2024-06-28,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.010.20.04.01","M.nemestrina",2024-06-28,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.012.20.01.01","M.nemestrina",2024-07-24,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.013.20.01.01","M.nemestrina",2024-08-13,"Nikolai","Patch-seq","basic props","NHPacute","TCx","STG",NA,NA
+"QN24.26.014.20.01.01","M.nemestrina",2024-08-20,"Nikolai","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN24.26.014.20.02.02","M.nemestrina",2024-08-20,"Nikolai","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN24.26.014.20.03.01","M.nemestrina",2024-08-20,"Nikolai","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN24.26.014.20.04.01","M.nemestrina",2024-08-21,"Nikolai","Patch-seq",NA,"NHPacute","TCx","ITG",NA,NA
+"QN24.26.015.20.01.01","M.nemestrina",2024-09-26,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN24.26.015.20.04.01","M.nemestrina",2024-09-26,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN24.26.017.20.03.01","M.nemestrina",2024-11-13,"Nikolai",NA,NA,"NHPacute","TCx","STG",NA,NA
+"QN24.26.017.20.CW302.01","M.nemestrina",2024-11-15,"Nikolai",NA,NA,"NHPculture","TCx","STG",NA,NA
+"QN24.26.017.20.CW102.01","M.nemestrina",2024-11-19,"Nikolai",NA,NA,"NHPculture","TCx","STG",NA,NA
+"QN25.26.001.20.06.01","M.nemestrina",2025-01-21,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN25.26.002.20.01.01","M.nemestrina",2025-02-12,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN25.26.002.20.04.01","M.nemestrina",2025-02-12,"Nikolai","Patch-seq",NA,"NHPacute","FCx","ACx",NA,NA
+"QN25.26.003.20.01.01","M.nemestrina",2025-02-19,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN25.26.003.20.03.01","M.nemestrina",2025-02-19,"Nikolai","Patch-seq",NA,"NHPacute","TCx","STG",NA,NA
+"QN25.26.004.20.01.01","M.nemestrina",2025-03-05,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN25.26.005.20.02.01","M. nemistrina",2025-03-06,"Nikolai","Patch-seq",NA,"NHPacute","FCx","dlPFC",NA,NA
+"QN25.26.004.20.CW01.01","M.nemestrina",2025-03-09,"Nikolai","Patch-seq",NA,"NHPculture","FCx","dlPFC",NA,NA
+"Q19.26.009.2A.04.003","M.nemestrina",2019-09-25,"ScottO","Patch-seq",NA,"NHPculture","MCx","M1",NA,NA
+"Q19.26.012.1A.02.01","M.nemestrina",NA,"ScottO","Patch-seq",NA,"NHPculture","MCx","M1",NA,NA
+"QN23.26.016.4A.07.01","M.nemestrina",2023-07-31,"ScottS",NA,NA,"NHPculture","TCx","ITG",NA,"/allen/programs/celltypes/workgroups/hct/HCT_Ephys_Data/NHP_expts/2023/QN23.26.016/QN23.26.016.4A.07.01.pxp"
+"QN24.26.017.12.10.01","M.nemestrina",2024-11-20,"ScottS",NA,NA,"NHPculture","MCx","M1-trunk",NA,NA
+"QN24.26.017.12.10.02","M.nemestrina",2024-11-20,"ScottS",NA,NA,"NHPculture","MCx","M1-trunk",NA,NA

@@ -12,6 +12,14 @@
 #' @param subclasses Optional character vector of subclasses to keep.
 #' @param facet      Faceting variable name (string). Default
 #'                   `"assigned_subclass"`. Set to `NA` to disable faceting.
+#' @param color_by   Optional column name to colour per-cell traces by
+#'                   (categorical). When set, traces use a discrete palette
+#'                   and a legend is shown. The black mean overlay is
+#'                   unaffected. Default `NULL` (all traces grey).
+#' @param palette    `ggplot2`/`scales` palette for `color_by`. Either a
+#'                   named character vector (e.g.
+#'                   `c(superficial = "#1f77b4", deep = "#d62728")`) or
+#'                   the name of a discrete palette (e.g. `"Set1"`).
 #' @param xlim,ylim  Axis limits passed to `coord_cartesian()`.
 #' @param title      Plot title.
 #' @param avg_fun    Summary function for the black overlay (default `mean`).
@@ -25,6 +33,8 @@
 plot_puff_traces <- function(df,
                              subclasses        = NULL,
                              facet             = "assigned_subclass",
+                             color_by          = NULL,
+                             palette           = NULL,
                              xlim              = c(-10, 50),
                              ylim              = c(0, 300),
                              title             = NULL,
@@ -43,7 +53,8 @@ plot_puff_traces <- function(df,
   df <- dplyr::filter(df, x_bin >= xlim[1], x_bin <= xlim[2])
 
   group_cols <- c("x_bin", "cell_name")
-  if (!is.na(facet)) group_cols <- c(group_cols, facet)
+  if (!is.na(facet))      group_cols <- c(group_cols, facet)
+  if (!is.null(color_by)) group_cols <- unique(c(group_cols, color_by))
 
   # Per-cell, per-bin mean of `percent_change`.
   per_cell <- df %>%
@@ -55,7 +66,9 @@ plot_puff_traces <- function(df,
   # get y = 0 so they contribute to the across-cell average rather than being
   # silently dropped.
   grid <- seq(xlim[1], xlim[2], by = bin_step)
-  cell_keys <- if (!is.na(facet)) c("cell_name", facet) else "cell_name"
+  cell_keys <- "cell_name"
+  if (!is.na(facet))      cell_keys <- c(cell_keys, facet)
+  if (!is.null(color_by)) cell_keys <- unique(c(cell_keys, color_by))
   per_cell <- per_cell %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(cell_keys))) %>%
     tidyr::complete(x_bin = grid, fill = list(y = 0)) %>%
@@ -76,11 +89,32 @@ plot_puff_traces <- function(df,
   p <- ggplot2::ggplot(per_cell,
                        ggplot2::aes(x = x_bin, y = y, group = cell_name)) +
     ggplot2::geom_hline(yintercept = 100, linetype = 2,
-                        colour = "grey60", linewidth = 0.4) +
-    ggplot2::geom_line(colour = "grey60",
-                       alpha    = trace_alpha,
-                       linewidth = trace_lwd,
-                       na.rm    = TRUE) +
+                        colour = "grey60", linewidth = 0.4)
+
+  if (is.null(color_by)) {
+    p <- p + ggplot2::geom_line(colour    = "grey60",
+                                alpha     = trace_alpha,
+                                linewidth = trace_lwd,
+                                na.rm     = TRUE)
+  } else {
+    p <- p + ggplot2::geom_line(
+      mapping = ggplot2::aes(colour = .data[[color_by]]),
+      alpha     = trace_alpha,
+      linewidth = trace_lwd,
+      na.rm     = TRUE
+    )
+    if (!is.null(palette)) {
+      if (length(palette) > 1 || !is.null(names(palette))) {
+        p <- p + ggplot2::scale_colour_manual(values = palette,
+                                              na.value = "grey60")
+      } else {
+        p <- p + ggplot2::scale_colour_brewer(palette = palette,
+                                              na.value = "grey60")
+      }
+    }
+  }
+
+  p <- p +
     ggplot2::geom_line(data        = df_mean,
                        mapping     = ggplot2::aes(x = x_bin, y = y),
                        inherit.aes = FALSE,
@@ -90,10 +124,14 @@ plot_puff_traces <- function(df,
     ggplot2::coord_cartesian(xlim = xlim, ylim = ylim) +
     ggplot2::labs(title = title,
                   x     = "Time (s)",
-                  y     = "Percent change") +
+                  y     = "Percent change",
+                  colour = color_by) +
     ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(legend.position = "none",
-                   panel.grid.minor = ggplot2::element_blank())
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+
+  if (is.null(color_by)) {
+    p <- p + ggplot2::theme(legend.position = "none")
+  }
 
   if (!is.na(facet)) {
     p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facet)))

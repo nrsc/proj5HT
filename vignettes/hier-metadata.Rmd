@@ -1,0 +1,205 @@
+---
+title: "Hierarchical Subclass Metadata & HTR Scores"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Hierarchical Subclass Metadata & HTR Scores}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+## Why this vignette exists
+
+Two related things landed on 2026-06-02:
+
+1. A single-source-of-truth helper, `normalize_hier_assignments()`, that
+   enforces the project-wide convention for `hier_*_assignment` labels
+   (spaces → underscores; empty strings → `NA`).
+2. A short reminder of what `data-raw/build_htr_scores.R` produces and how
+   the new helper threads through it.
+
+This vignette captures both so future-Scott (and future-Chloe) don't have
+to reverse-engineer the wiring.
+
+---
+
+## 1. The hier_* convention
+
+`headBCI::sheets$cleanMD` carries **28 `hier_*` columns** populated by the
+headBCI sheets pipeline. The four *assignment* columns are categorical
+labels emitted by the hierarchical transcriptomic classifier:
+
+| column                          | example value     |
+|---------------------------------|-------------------|
+| `hier_class_assignment`         | `"Glutamatergic"` |
+| `hier_neighborhood_assignment`  | `"IT_Types"`      |
+| `hier_subclass_assignment`      | `"L2/3 IT"`       |
+| `hier_cluster_assignment`       | `"L2/3 IT_1"`     |
+
+Upstream sheets sometimes ship these labels with **spaces** (e.g.
+`"L2/3 IT"`). Downstream code, including manuscript figure scripts, joins
+on the *underscored* form (`"L2/3_IT"`) — that is the project convention.
+
+Before this refactor the space → underscore replacement was being done in
+several places (Seurat builder, manuscript setup, ad-hoc figure code),
+each with slightly different defaults. The risk was obvious: stale or
+unnormalised values silently surviving a join, then equality checks like
+`hier_subclass_assignment == "L2/3_IT"` quietly returning `FALSE`.
+
+### The helper
+
+```r
+proj5HT::normalize_hier_assignments(
+  df,
+  cols = c("hier_class_assignment",
+           "hier_neighborhood_assignment",
+           "hier_subclass_assignment",
+           "hier_cluster_assignment")
+)
+```
+
+For each column in `cols` that exists in `df`:
+
+* `NA` and empty strings become `NA_character_`.
+* Spaces are replaced with underscores (`fixed = TRUE`).
+
+Idempotent and column-aware — safe to call multiple times.
+
+### Where it is now wired
+
+| Consumer                                   | How it gets normalized           |
+|--------------------------------------------|----------------------------------|
+| `hier5HT()`                                | calls the helper internally      |
+| `add_hier_to_seurat()`                     | calls the helper internally; now also drops pre-existing hier cols before the merge so freshly-normalised values win |
+| `dev/Seurat/Seurat_Objects.R` builder      | inline call right after the `cleanMD` join |
+| `manu/_shared/setup.R::load_cohort_subclass()` | inline call after the `cleanMD` subset; `subclass_hier` is now an alias of the already-normalised `hier_subclass_assignment` |
+| `data-raw/build_htr_scores.R`              | inline call right after `Seurat::FetchData()` so the persisted `htr_scores.csv/.rds` is always normalised |
+
+If you ever add a new place that pulls hier labels out of `cleanMD` or a
+Seurat object, call `normalize_hier_assignments()` once after the join
+and move on.
+
+---
+
+## 2. What `build_htr_scores.R` actually produces
+
+`data-raw/build_htr_scores.R` is the per-cell HTR (serotonin receptor)
+expression table that backs manuscript figures 2, 3, 4, 6, and S2.
+
+### Inputs
+
+* `data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds` — the curated
+  macaque PatchSeq Seurat object. Its `counts` layer is already in
+  **CPM** units, so it is *not* re-normalised here.
+* `headBCI::sheets$cleanMD` — joined in via `add_hier_to_seurat()` so
+  every cell carries the canonical hier classifier output.
+
+### Output columns
+
+```text
+cell_name
+
+# canonical hier classifier (headBCI) — now always normalised
+hier_class_assignment
+hier_neighborhood_assignment
+hier_subclass_assignment
+hier_cluster_assignment
+hier_subclass_bootstrap_prob
+hier_subclass_avg_corr
+
+# legacy Seurat-internal calls (kept for QC comparison only)
+subclass_Corr, subclass_Tree, cluster_Corr_label, predicted_subclass
+
+# anatomical / QC
+Cortical_area, Species, LIMS_depth, Depth_from_pia,
+Genes.Detected, percent_reads_aligned_to_introns,
+marker_sum_norm_label, quality_score_label, score.Corr_label
+
+# per-receptor CPM (NA-tolerant)
+HTR1A, HTR1B, HTR1D, HTR1E, HTR1F           # HTR1 family
+HTR2A, HTR2B, HTR2C                         # HTR2 family
+HTR4,  HTR5A, HTR6,  HTR7                   # "HTR0" family (other)
+
+# provenance flags for known-iffy genes
+htr1a_status, htr1b_status                  # "provisional_seurat_primary"
+
+# derived per-cell scores
+HTR1_sum, HTR2_sum, HTR0_sum
+HTR_balance = HTR2_sum - HTR1_sum
+```
+
+### Interpretation
+
+* **`HTR1_sum`** — total HTR1-family expression. The HTR1 family is
+  predominantly **inhibitory** (Gi/o-coupled, hyperpolarising).
+* **`HTR2_sum`** — total HTR2-family expression. The HTR2 family is
+  predominantly **excitatory** (Gq-coupled, depolarising).
+* **`HTR0_sum`** — bookkeeping sum of the remaining receptors
+  (HTR4/5A/6/7), kept separate because they are mechanistically mixed.
+* **`HTR_balance = HTR2_sum − HTR1_sum`** — single-number summary of
+  whether a cell's receptor repertoire biases it toward **excitation by
+  5-HT (> 0)** or **inhibition by 5-HT (< 0)**. This is the predictor we
+  test against the empirically measured 5-HT response type (puff /
+  drug-wash classification) for every figure that asks "does the
+  transcriptomic receptor repertoire predict the physiological response?"
+
+### Provisional values
+
+`HTR1A` and `HTR1B` in the primary macaque Seurat object are
+**known-inaccurate** (curation pending). Both rows are tagged via
+`htr1a_status` / `htr1b_status = "provisional_seurat_primary"`. When the
+accessory-file patch lands, those tags will flip (e.g.
+`"patched_<source>_<date>"`) and the script can simply be re-run — all
+the derived columns (`HTR1_sum`, `HTR_balance`) recompute from the new
+values automatically.
+
+### How the helper threads through
+
+```r
+df <- Seurat::FetchData(obj, vars = c(meta_cols, present))
+
+## normalize hier assignment labels (single source of truth)
+df <- proj5HT::normalize_hier_assignments(df)
+```
+
+So by the time `htr_scores.csv` hits disk, every `hier_*_assignment`
+value matches what figure code expects (`"L2/3_IT"`, `"L5_IT"`,
+`"L5_ET"`, …) — no matter whether the upstream `cleanMD` happened to use
+spaces that day.
+
+---
+
+## 3. Quick sanity check
+
+```r
+library(proj5HT)
+
+## load the built table
+htr <- readRDS(here::here("data-raw/htr_scores.rds"))
+
+## confirm normalisation took
+unique(htr$hier_subclass_assignment)
+#> "L2/3_IT" "L5_IT" "L5_ET" "L6_IT" ...   (no spaces)
+
+## counts per subclass
+table(htr$hier_subclass_assignment, useNA = "ifany")
+
+## excitatory vs inhibitory bias by subclass
+aggregate(HTR_balance ~ hier_subclass_assignment, htr, median, na.rm = TRUE)
+```
+
+---
+
+## See also
+
+* `?proj5HT::normalize_hier_assignments`
+* `?proj5HT::hier5HT`
+* `?proj5HT::add_hier_to_seurat`
+* `data-raw/build_htr_scores.R`
+* `manu/_shared/setup.R` — `load_cohort_subclass()`
+* `dev/Seurat/Seurat_Objects.R` — `build_seurat_from_feather()`

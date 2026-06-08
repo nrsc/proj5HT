@@ -1,0 +1,365 @@
+---
+title: "HTR violin & dot plots — hier subclass"
+author: "SawchukS"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = TRUE,
+  message   = FALSE,
+  warning   = FALSE,
+  cache     = TRUE,
+  fig.align = "center",
+  out.width = "100%"
+)
+
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(headBCI)
+library(proj5HT)
+```
+
+## Purpose
+
+A single, clean source of violin and dot plots of serotonin receptor (HTR)
+expression across cortical subclasses, replacing the scattered `Seurat-*`
+Rmds (`Seurat-Figure.Rmd`, `Seurat-PatchSeqFigures.Rmd`,
+`Seurat-Figures-offPipeline.Rmd`, `Seurat-Figures-depthHTR.Rmd`,
+`Seurat-offPipeline-PatchSeqFigures.Rmd`, `Seurat-10xFigures.Rmd`).
+
+**Grouping variable**
+
+* **PatchSeq objects** (off-pipeline + on-pipeline macaque/human) are grouped
+  by a per-cell **subclass identity with a documented fallback chain**:
+  1. `hier_subclass_assignment` (canonical headBCI hier classifier, joined
+     from `headBCI::sheets$cleanMD` via `proj5HT::add_hier_to_seurat()`),
+  2. `subclass_Corr_label` (legacy correlation-based call — used today for
+     the human PatchSeq cohort which is not yet in the hier classifier),
+  3. `subclass_label` (raw AIBS taxonomy label).
+
+  All three are space-normalised via `proj5HT::normalize_taxonomy_labels()`
+  / `proj5HT::normalize_hier_assignments()` so the underscored vocabulary
+  (`"L2/3_IT"`, `"L5_ET"`, …) is shared across every panel. A per-cohort
+  `subclass_source` table below makes the fallback explicit.
+* **10x reference objects** (`*MTG_10xFACs.rds`) are *not* in `cleanMD`
+  (they have no `cell_name`), so they remain grouped by their native
+  `subclass_label` — which is normalised to the underscored hier
+  convention (`"L5 ET"` → `"L5_ET"`) at Seurat-object build time via
+  `proj5HT::normalize_taxonomy_labels()`, so axis text matches the
+  PatchSeq panels with no per-Rmd massaging.
+
+This is the migration off `subclass_Corr` (correlation-only) /
+`subclass_Tree` (legacy tree mapping) onto `hier_*_assignment` as the sole
+project-wide subclass identity.
+
+---
+
+## Config
+
+```{r config}
+SEURAT_DIR <- "~/proj5HT/data-raw/Seurat"
+
+## ---- receptor groupings (must mirror data-raw/build_htr_scores.R) ----------
+HTR1     <- c("HTR1A", "HTR1B", "HTR1D", "HTR1E", "HTR1F")
+HTR2     <- c("HTR2A", "HTR2B", "HTR2C")
+HTR0     <- c("HTR4",  "HTR5A", "HTR6",  "HTR7")
+HTR_ALL  <- c(HTR1, HTR2, HTR0)
+
+## ---- subclass ordering (consistent across all panels) ----------------------
+SUBCLASS_ORDER <- c(
+  "L2/3_IT", "L4_IT", "L5_IT", "L6_IT", "L6_IT_Car3",
+  "L5_ET", "L5/6_NP", "L6_CT", "L6b",
+  "Pvalb", "Sst", "Sst_Chodl", "Vip", "Lamp5", "Lamp5_Lhx6", "Sncg", "Pax6"
+)
+
+## ---- shared plot decoration ------------------------------------------------
+legend_guides <- guides(
+  size  = guide_legend(title  = "% Exp"),
+  color = guide_colorbar(title = "Avg Exp")
+)
+dot_cols   <- c("white", "blue")
+dot_theme  <- theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r helpers}
+## Drop unused factor levels and impose the canonical subclass order, keeping
+## any unexpected subclass values at the end so nothing is silently dropped.
+order_subclass <- function(x, levels = SUBCLASS_ORDER) {
+  extra <- setdiff(unique(stats::na.omit(x)), levels)
+  factor(x, levels = c(levels, extra))
+}
+
+## Make 10x `subclass_label` (e.g. "L2/3 IT") match hier convention (underscores)
+## Kept here as a defensive fallback for older Seurat objects built before
+## `proj5HT::normalize_taxonomy_labels()` was wired into the builder.
+to_hier_style <- function(x) gsub(" ", "_", x, fixed = TRUE)
+
+## Resolve a per-cell subclass identity with a documented fallback chain:
+##   1. hier_subclass_assignment      (canonical, headBCI hier classifier)
+##   2. subclass_Corr_label           (legacy correlation-based call)
+##   3. subclass_label                (raw AIBS taxonomy label)
+## Returns a list with `value` (character vector) and `source` (per-cell tag)
+## so panels can declare which call they're plotting.
+resolve_subclass <- function(obj) {
+  md <- obj@meta.data
+  hier <- md$hier_subclass_assignment
+  corr <- md$subclass_Corr_label
+  rawl <- md$subclass_label
+  pick <- function(h, c, r) {
+    if (!is.na(h) && nzchar(h)) return(c(value = h,    source = "hier"))
+    if (!is.na(c) && nzchar(c)) return(c(value = c,    source = "subclass_Corr"))
+    if (!is.na(r) && nzchar(r)) return(c(value = r,    source = "subclass_label"))
+    c(value = NA_character_, source = NA_character_)
+  }
+  if (is.null(hier)) hier <- rep(NA_character_, ncol(obj))
+  if (is.null(corr)) corr <- rep(NA_character_, ncol(obj))
+  if (is.null(rawl)) rawl <- rep(NA_character_, ncol(obj))
+  ## USE.NAMES = FALSE: otherwise mapply uses the *values* of `hier` as
+  ## column names of the resulting matrix, which Seurat's `$<-` then
+  ## misinterprets as cell barcodes ("No cell overlap" / NA in name check).
+  m <- mapply(pick, hier, corr, rawl, USE.NAMES = FALSE)
+  list(value  = unname(to_hier_style(m["value",  ])),
+       source = unname(m["source", ]))
+}
+
+## Standard dot plot for a receptor family.
+htr_dotplot <- function(obj, features, group.by, title,
+                        scale = FALSE, scale.max = 100) {
+  Seurat::DotPlot(
+    object    = obj,
+    features  = features,
+    group.by  = group.by,
+    scale     = scale,
+    scale.min = 0,
+    scale.max = scale.max,
+    cols      = dot_cols
+  ) +
+    legend_guides +
+    dot_theme +
+    ggtitle(title)
+}
+
+## Stacked violin: one row per feature, shared x-axis (group).
+htr_vlnstack <- function(obj, features, group.by, title) {
+  Seurat::VlnPlot(
+    object       = obj,
+    features     = features,
+    group.by     = group.by,
+    pt.size      = 0,
+    stack        = TRUE,
+    flip         = TRUE,
+    same.y.lims  = FALSE
+  ) +
+    ggtitle(title) +
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+---
+
+## Load objects
+
+```{r load}
+load_rds <- function(name) {
+  p <- file.path(SEURAT_DIR, name)
+  if (!file.exists(p)) { warning("missing: ", p); return(NULL) }
+  readRDS(p)
+}
+
+## ---- PatchSeq (off-pipeline; canonical for hier comparisons) ---------------
+mPatch <- load_rds("offPipeline-Macaque_PatchSeq.rds")
+hPatch <- load_rds("offPipeline-Human_PatchSeq.rds")
+
+## ---- 10x reference (no cell_name → no hier; use subclass_label) ------------
+mMTG <- load_rds("MacaqueMTG_10xFACs.rds")
+hMTG <- load_rds("HumanMTG_10xFACs.rds")
+cMTG <- load_rds("ChimpMTG_10xFACs.rds")
+gMTG <- load_rds("GorillaMTG_10xFACs.rds")
+```
+
+```{r attach-hier}
+## Attach hier_* metadata to PatchSeq objects (idempotent — safe to re-run).
+if (!is.null(mPatch)) mPatch <- proj5HT::add_hier_to_seurat(mPatch)
+if (!is.null(hPatch)) hPatch <- proj5HT::add_hier_to_seurat(hPatch)
+```
+
+```{r prep-grouping}
+## PatchSeq: prefer hier_subclass_assignment; fall back to subclass_Corr_label
+## then subclass_label (human PatchSeq is not yet in the hier classifier).
+stamp_subclass <- function(obj) {
+  if (is.null(obj)) return(NULL)
+  r <- resolve_subclass(obj)
+  obj$subclass_hier   <- order_subclass(r$value)
+  obj$subclass_source <- r$source
+  obj
+}
+mPatch <- stamp_subclass(mPatch)
+hPatch <- stamp_subclass(hPatch)
+
+## 10x reference: subclass_label is already normalised at build time via
+## `proj5HT::normalize_taxonomy_labels()`. Defensive `to_hier_style()` here
+## keeps older Seurat objects (built before that wiring) consistent.
+for (nm in c("mMTG", "hMTG", "cMTG", "gMTG")) {
+  obj <- get(nm)
+  if (is.null(obj)) next
+  obj$subclass_hier   <- order_subclass(to_hier_style(obj$subclass_label))
+  obj$subclass_source <- ifelse(is.na(obj$subclass_hier), NA_character_, "subclass_label")
+  assign(nm, obj)
+}
+```
+
+```{r subclass-source-table}
+## Show which call (hier / subclass_Corr / subclass_label) is sourcing the
+## grouping for each PatchSeq cohort — makes the fallback explicit.
+src_tbl <- function(obj, name) {
+  if (is.null(obj)) return(NULL)
+  tibble::tibble(dataset = name,
+                 source  = obj$subclass_source) |>
+    dplyr::count(dataset, source)
+}
+dplyr::bind_rows(
+  src_tbl(mPatch, "macaque_PatchSeq"),
+  src_tbl(hPatch, "human_PatchSeq")
+) |>
+  tidyr::pivot_wider(names_from = source, values_from = n, values_fill = 0L) |>
+  knitr::kable(caption = "PatchSeq subclass source (per-cell, after fallback)")
+```
+
+```{r subclass-counts}
+## quick sanity table — how many cells per subclass per dataset
+count_subclass <- function(obj, name) {
+  if (is.null(obj)) return(NULL)
+  tibble::tibble(dataset = name,
+                 subclass = as.character(obj$subclass_hier)) |>
+    dplyr::count(dataset, subclass)
+}
+dplyr::bind_rows(
+  count_subclass(mPatch, "macaque_PatchSeq"),
+  count_subclass(hPatch, "human_PatchSeq"),
+  count_subclass(mMTG,   "macaque_10x"),
+  count_subclass(hMTG,   "human_10x"),
+  count_subclass(cMTG,   "chimp_10x"),
+  count_subclass(gMTG,   "gorilla_10x")
+) |>
+  tidyr::pivot_wider(names_from = dataset, values_from = n, values_fill = 0L) |>
+  knitr::kable(caption = "Cell counts per subclass × dataset")
+```
+
+---
+
+## PatchSeq — violin plots (`hier_subclass_assignment`)
+
+```{r vln-patchseq-macaque, fig.height = 6, fig.width = 9, eval = !is.null(mPatch)}
+htr_vlnstack(mPatch, HTR_ALL, "subclass_hier",
+             "Macaque PatchSeq — hier_subclass_assignment")
+```
+
+```{r vln-patchseq-human, fig.height = 6, fig.width = 9, eval = !is.null(hPatch)}
+htr_vlnstack(hPatch, HTR_ALL, "subclass_hier",
+             "Human PatchSeq — hier_subclass_assignment")
+```
+
+---
+
+## PatchSeq — dot plots by family (`hier_subclass_assignment`)
+
+```{r dot-patchseq, fig.height = 4, fig.width = 12, eval = !is.null(mPatch)}
+(htr_dotplot(mPatch, HTR1, "subclass_hier", "Macaque HTR1") |
+ htr_dotplot(mPatch, HTR2, "subclass_hier", "Macaque HTR2") |
+ htr_dotplot(mPatch, HTR0, "subclass_hier", "Macaque other"))
+```
+
+```{r dot-patchseq-human, fig.height = 4, fig.width = 12, eval = !is.null(hPatch)}
+(htr_dotplot(hPatch, HTR1, "subclass_hier", "Human HTR1") |
+ htr_dotplot(hPatch, HTR2, "subclass_hier", "Human HTR2") |
+ htr_dotplot(hPatch, HTR0, "subclass_hier", "Human other"))
+```
+
+---
+
+## 10x reference — dot plots across species
+
+Reference 10x FACS objects do not carry `cell_name`, so hier metadata is
+not joined. Subclass labels here come from the native `subclass_label`
+column (relabelled to underscored form for axis consistency).
+
+```{r dot-10x-htr1, fig.height = 4, fig.width = 14, eval = !is.null(mMTG)}
+(htr_dotplot(hMTG, HTR1, "subclass_hier", "Human 10x")   |
+ htr_dotplot(mMTG, HTR1, "subclass_hier", "Macaque 10x") |
+ htr_dotplot(cMTG, HTR1, "subclass_hier", "Chimp 10x")   |
+ htr_dotplot(gMTG, HTR1, "subclass_hier", "Gorilla 10x"))
+```
+
+```{r dot-10x-htr2, fig.height = 4, fig.width = 14, eval = !is.null(mMTG)}
+(htr_dotplot(hMTG, HTR2, "subclass_hier", "Human 10x")   |
+ htr_dotplot(mMTG, HTR2, "subclass_hier", "Macaque 10x") |
+ htr_dotplot(cMTG, HTR2, "subclass_hier", "Chimp 10x")   |
+ htr_dotplot(gMTG, HTR2, "subclass_hier", "Gorilla 10x"))
+```
+
+```{r dot-10x-htr0, fig.height = 4, fig.width = 14, eval = !is.null(mMTG)}
+(htr_dotplot(hMTG, HTR0, "subclass_hier", "Human 10x")   |
+ htr_dotplot(mMTG, HTR0, "subclass_hier", "Macaque 10x") |
+ htr_dotplot(cMTG, HTR0, "subclass_hier", "Chimp 10x")   |
+ htr_dotplot(gMTG, HTR0, "subclass_hier", "Gorilla 10x"))
+```
+
+---
+
+## 10x reference — stacked violins
+
+```{r vln-10x-macaque, fig.height = 6, fig.width = 8, eval = !is.null(mMTG)}
+htr_vlnstack(mMTG, HTR_ALL, "subclass_hier", "Macaque 10x — subclass_label")
+```
+
+```{r vln-10x-human, fig.height = 6, fig.width = 8, eval = !is.null(hMTG)}
+htr_vlnstack(hMTG, HTR_ALL, "subclass_hier", "Human 10x — subclass_label")
+```
+
+---
+
+## L2/3 IT focus — clusters within subclass
+
+For the L2/3 IT subclass specifically, drop down to `hier_cluster_assignment`
+to inspect within-subclass heterogeneity.
+
+```{r l23-clusters, fig.height = 5, fig.width = 10, eval = !is.null(mPatch)}
+l23 <- subset(mPatch, subset = hier_subclass_assignment == "L2/3_IT")
+l23$cluster_hier <- factor(l23$hier_cluster_assignment)
+
+htr_dotplot(l23, HTR_ALL, "cluster_hier",
+            "Macaque L2/3_IT — hier_cluster_assignment", scale = FALSE)
+```
+
+---
+
+## Provenance
+
+* Subclass grouping: `headBCI::sheets$cleanMD$hier_subclass_assignment`
+  (joined via `proj5HT::add_hier_to_seurat()`).
+* Label normalisation: `proj5HT::normalize_hier_assignments()` — see
+  [vignettes/hier-metadata.Rmd](../vignettes/hier-metadata.Rmd).
+* Receptor families: must remain in sync with
+  [data-raw/build_htr_scores.R](../data-raw/build_htr_scores.R) and
+  [manu/_shared/setup.R](../manu/_shared/setup.R).
+* Replaces (do not edit further; archive when convenient):
+  `Seurat-Figure.Rmd`, `Seurat-PatchSeqFigures.Rmd`,
+  `Seurat-Figures-offPipeline.Rmd`, `Seurat-Figures-depthHTR.Rmd`,
+  `Seurat-offPipeline-PatchSeqFigures.Rmd`,
+  `Seurat-Figures-offPipeline_inhibitory.Rmd`.
+
+```{r sessioninfo, echo = FALSE}
+sessioninfo::session_info()
+```

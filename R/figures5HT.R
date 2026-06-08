@@ -46,6 +46,26 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
     title = "L23_IT — superficial vs deep (split at 500 µm)"
   )
 
+  # L23_IT split by transcriptomic cluster_Corr (Exc L2/3 clusters), with
+  # per-cell traces coloured by cortical depth (superficial vs deep).
+  l23_clusters <- c("Exc L2-3 LINC00507 FREM3",
+                    "Exc L2 LAMP5 LTK",
+                    "L2/3_IT_1",
+                    "L2/3_IT_3")
+  depth_palette <- c(superficial = "#1f77b4", deep = "#d62728")
+  figs$l23_cluster <- plot_puff_traces(
+    dplyr::filter(dfs$df0,
+                  assigned_subclass == "L23_IT",
+                  cluster_Corr %in% l23_clusters,
+                  !is.na(depth_bin)),
+    facet    = "cluster_Corr",
+    color_by = "depth_bin",
+    palette  = depth_palette,
+    xlim     = c(-10, 50),
+    ylim     = c(0, 300),
+    title    = "L23_IT — split by cluster_Corr, coloured by depth"
+  )
+
   # Human 5HT puff response
   figs$human <- plot_puff_traces(
     dfs$dfH,
@@ -58,6 +78,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   # 5CT puff
   figs$puff_5ct <- plot_puff_traces(
     dfs$df_5ct,
+    subclasses = pyr3,
     xlim  = c(-10, 50),
     ylim  = c(0, 200),
     title = "5CT response across pyramids"
@@ -67,7 +88,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   figs$ket <- plot_puff_traces(
     dfs$df_ket,
     subclasses = pyr3,
-    xlim       = c(-20, 100),
+    xlim       = c(-10, 50),
     ylim       = c(0, 200),
     title      = "5HT puff under Ket bath"
   )
@@ -75,7 +96,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   # WAY-100635 bath
   figs$way <- plot_puff_traces(
     dfs$df_way,
-    xlim  = c(-20, 80),
+    xlim  = c(-10, 50),
     ylim  = c(0, 300),
     title = "5HT/5CT response under WAY-100635"
   )
@@ -92,7 +113,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   figs$control <- plot_puff_traces(
     dfs$df_control,
     subclasses = pyr3,
-    xlim       = c(-50, 50),
+    xlim       = c(-20, 50),
     ylim       = c(50, 150),
     title      = "Control puff experiments"
   )
@@ -100,7 +121,7 @@ figures5HT <- function(dfs = NULL, interactive = FALSE) {
   # Ketanserin contamination window
   figs$kcon <- plot_puff_traces(
     dfs$df_kcon,
-    xlim  = c(-10, 60),
+    xlim  = c(-10, 50),
     ylim  = c(0, 300),
     title = "Cells run during Ket contamination window"
   )

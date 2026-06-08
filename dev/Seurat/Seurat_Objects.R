@@ -1,764 +1,359 @@
-# Patch-Seq offpipeline Macaque ---------------------------------------------------------------
-SeuratHCT_offPipelineMacaque = function(save_object = TRUE #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                                 #subclass = c('L5 IT', 'L5 ET', "L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b")
-                                 ) {
-  MD = projHCT::sheets$MD
+# ============================================================================
+# dev/Seurat/Seurat_Objects.R
+# ----------------------------------------------------------------------------
+# Build Seurat objects for the proj5HT cohorts (Patch-Seq + 10x FACS,
+# macaque / human / chimp / gorilla, on- and off-pipeline subsets).
+#
+# Refactor (2026-06-02):
+#   - Collapses the 8 near-identical SeuratHCT_* functions in the
+#     pre-refactor version (see
+#     .archive/2026-06-02_ketwash_spikepuff/Seurat_Objects.pre-refactor.R)
+#     into a single internal core, `build_seurat_from_feather()`.
+#   - Per-cohort builders are thin wrappers (~10 lines each).
+#   - `add_hier_to_seurat()` is invoked automatically when the
+#     annotation feather carries `cell_name_label` (i.e. Patch-Seq
+#     cohorts), so hier_* columns land in `@meta.data` at build time.
+#   - All cohorts are saved under `data-raw/Seurat/` with a single tag
+#     scheme: `<species>_<modality>[_<subset>].rds`.
+#   - The auto-execution at source-time is removed; use
+#     `build_all_seurat_objects()` (or call individual builders) once
+#     you actually want to rebuild.
+#
+# Conventions:
+#   - All counts feathers are assumed to be cell-id-columned tables with
+#     a leading `gene` column; CPM normalization + log2(x+1) is applied.
+#   - Patch-Seq cohorts join against `headBCI::sheets$cleanMD` (replaces
+#     the previous `projHCT::sheets$MD` dependency).
+# ============================================================================
 
-  # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "anno.feather"))
+suppressPackageStartupMessages({
+  library(Seurat)
+  library(feather)
+  library(dplyr)
+})
 
-  # Select only our cells
-  tstAP = aPatch[match(MD$cell_name, aPatch$cell_name_label, nomatch = 0), ]
-  #pipeAP = aPatch[!match(MD$cell_name, aPatch$cell_name_label, nomatch = 0),]
+## ----------------------------------------------------------------------------
+## Default cohort knobs
+## ----------------------------------------------------------------------------
 
-  # Pull those cells from the MD to merge
-  tstMD = MD[match(tstAP$cell_name_label, MD$cell_name, nomatch = 0), ]
+.SEU_PATHS <- list(
+  macaque_patchseq = "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-400_map_full/",
+  human_patchseq   = "~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/",
+  macaque_10x      = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
+  human_10x        = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/",
+  chimp_10x        = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Chimp/",
+  gorilla_10x      = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Gorilla/"
+)
 
-  # Check for matches
-  tryCatch({
-    identical(tstMD$cell_name, tstAP$cell_name_label)
-  }, error = function(e) {
-    warning("Metadata names and annotation names do not match", e$message)
-    stop("Critical Failure: ", e$message)
-  })
+.SEU_OUTDIR <- "~/proj5HT/data-raw/Seurat"
 
-  tstMD$patched_cell_container_label = tstMD$patched_cell_container
-  tstMD$patched_cell_container = NULL
-  tstMD$sample_id = NULL
+.EXC_SUBCLASS <- c("L5 IT", "L5 ET", "L5/6 NP", "L4 IT",
+                   "L2/3 IT", "L6 IT", "L6 CT", "L6b")
+.EXC_INH_SUBCLASS <- c(.EXC_SUBCLASS, "Chandelier", "Pvalb",
+                       "Vip", "Sst", "Sst Chodl")
+.EXC_NEIGHBORHOODS <- c("it_types", "l5et_l56np_l6ct_l6b")
 
-  # Metadata merging from our MD with the annotation data from the sequencing data.
-  sMD = merge(tstAP, tstMD, "patched_cell_container_label")
+## ----------------------------------------------------------------------------
+## Core builder
+## ----------------------------------------------------------------------------
 
-  # Isolate subclass
-  #sMD = sMD[is.element(sMD$subclass_Corr_label, subclass), ]
+#' Build one Seurat object from a `{counts, anno}` feather pair.
+#'
+#' Cell-name detection:
+#'   - Patch-Seq feathers carry `cell_name_label` → triggers the join to
+#'     `headBCI::sheets$cleanMD` and a follow-on `add_hier_to_seurat()`.
+#'   - 10x FACS feathers don't carry per-cell ephys metadata; the join
+#'     is skipped and only the feather's own annotation is attached.
+#'
+#' @param path Directory containing `counts.feather` (or `data.feather`)
+#'   and `anno.feather`.
+#' @param subclass Optional character vector of subclass labels to keep.
+#'   Matches against `subclass_label` (10x) or `subclass_Corr_label`
+#'   (Patch-Seq), whichever is present.
+#' @param neighborhood Optional character vector of neighborhood labels
+#'   (matched against `neighborhood_label` / `neighborhood_Corr_label`).
+#' @param counts_file Filename of the counts feather (default tries
+#'   `counts.feather` then `data.feather`).
+#' @param normalize One of `"cpm_log2"` (10x raw counts → CPM → log2)
+#'   or `"log2_only"` (Patch-Seq feathers that are already RPM).
+#' @param project Seurat project name.
+#' @return Seurat object. Patch-Seq cohorts (annotation feather carrying
+#'   `cell_name_label`) automatically get `headBCI::sheets$cleanMD` joined
+#'   in — hier_* columns included — with assignment labels normalized via
+#'   `proj5HT::normalize_hier_assignments()`.
+#' @keywords internal
+build_seurat_from_feather <- function(path,
+                                      subclass     = NULL,
+                                      neighborhood = NULL,
+                                      counts_file  = NULL,
+                                      normalize    = c("cpm_log2", "log2_only"),
+                                      project      = "proj5HT_seurat") {
 
-  # Remove Squirrel Monkey Cells that are labeled with a Q instead of a SC
-  if ("S.sciureus" %in% sMD$Species) {
-    sMD <- sMD[sMD$Species != "S.sciureus", ]
+  normalize <- match.arg(normalize)
+  stopifnot(dir.exists(path))
+
+  ## ---- annotation ----------------------------------------------------------
+  anno <- feather::read_feather(file.path(path, "anno.feather"))
+  anno <- as.data.frame(anno)
+
+  sub_col <- if ("subclass_Corr_label" %in% names(anno)) "subclass_Corr_label" else "subclass_label"
+  nbh_col <- if ("neighborhood_Corr_label" %in% names(anno)) "neighborhood_Corr_label" else "neighborhood_label"
+
+  if (!is.null(subclass) && sub_col %in% names(anno)) {
+    anno <- anno[anno[[sub_col]] %in% subclass, , drop = FALSE]
+  }
+  if (!is.null(neighborhood) && nbh_col %in% names(anno)) {
+    anno <- anno[anno[[nbh_col]] %in% neighborhood, , drop = FALSE]
   }
 
-  # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "data.feather"))
-
-  # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
-  dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]
-  dPatch = as.data.frame(dPatch)
-
-  #### Set rownames and colnames before transposing ####
-  rownames(dPatch) = dPatch$sample_id
-  dPatch$sample_id = NULL
-  dPatch = as.data.frame(t(dPatch))
-  #dPatch = as.data.frame(t(dPatch))
-  #### Dp a log transformation of the data object
-  dPatch = log2(dPatch + 1)
-
-  sMD$set = rep("allMacaque-PatchSeq", dim(dPatch)[2])
-
-  # dPatch.metadata =  data.frame(
-  #   set = rep("Patch-seq", dim(dPatch)[2]),
-  #   cell_name = sMD$cell_name,
-  #   Cortical_area = sMD$Cortical_area,
-  #   patched_cell_container = sMD$patched_cell_container_label,
-  #   subclass = sMD$subclass_Corr_label,
-  #   subclassTree = sMD$subclass_Tree_label,
-  #   cluster = sMD$cluster_Corr_label,
-  #   clusterTree = sMD$cluster_Tree_label,
-  #   scoreCorr = sMD$score.Corr,
-  #   scoreTree = sMD$score.Tree,
-  #   praIntrons = sMD$percent_reads_aligned_to_introns,
-  #   markerSumNorm = sMD$marker_sum_norm,
-  #   roi = sMD$roi_label,
-  #   species = sMD$Species,
-  #   neighbourhoodCorr = sMD$neighborhood_Corr_label,
-  #
-  #   row.names = colnames(dPatch)
-  # )
-
-
-  dPatch <- Seurat::CreateSeuratObject(counts = dPatch,
-                                       meta.data = sMD,
-                                       project = "offPipeline_Macaque-PatchSeq")
-
-  dPatch[["percent.mt"]] <- Seurat::PercentageFeatureSet(dPatch, pattern = "^MT*")
-
-
-
-
-
-
-  if (save_object) {
-    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq.rds")
-
-    excD = subset(dPatch, subset = neighborhood_Corr_label %in% c("it_types", "l5et_l56np_l6ct_l6b"))
-    saveRDS(excD, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq_excitatory.rds")
-    inhD = subset(dPatch, subset = !neighborhood_Corr_label %in% c("it_types", "l5et_l56np_l6ct_l6b"))
-    saveRDS(inhD, file = "~/proj5HT/data-raw/Seurat/offPipeline-Macaque_PatchSeq_inhibitory.rds")
+  ## drop squirrel monkey contamination if present
+  if ("species_label" %in% names(anno)) {
+    anno <- anno[anno$species_label != "S.sciureus", , drop = FALSE]
   }
 
-  ## Construct data set lists
+  ## ---- counts --------------------------------------------------------------
+  if (is.null(counts_file)) {
+    counts_file <- if (file.exists(file.path(path, "counts.feather"))) "counts.feather" else "data.feather"
+  }
+  counts <- feather::read_feather(file.path(path, counts_file))
+  counts <- as.data.frame(counts)
 
-  return(dPatch)
+  if ("gene" %in% names(counts)) {
+    rownames(counts) <- counts$gene
+    counts$gene <- NULL
+  } else {
+    ## Patch-Seq style: sample_id is the row key, transpose to genes x cells
+    rownames(counts) <- counts$sample_id
+    counts$sample_id <- NULL
+    counts <- as.data.frame(t(counts))
+  }
 
+  ## align cells to surviving anno rows
+  keep <- match(anno$sample_id, colnames(counts), nomatch = 0)
+  counts <- counts[, keep[keep > 0], drop = FALSE]
+  anno   <- anno[keep > 0, , drop = FALSE]
+
+  if (!identical(colnames(counts), anno$sample_id)) {
+    stop("Counts colnames and anno$sample_id do not align after filtering.")
+  }
+
+  ## ---- normalize ----------------------------------------------------------
+  if (normalize == "cpm_log2") {
+    csum <- colSums(counts)
+    csum[csum == 0] <- NA
+    counts <- sweep(counts, 2, csum, FUN = "/") * 1e6
+  }
+  counts <- log2(counts + 1)
+
+  ## ---- patch-seq metadata join --------------------------------------------
+  meta <- anno
+  rownames(meta) <- meta$sample_id
+
+  ## normalize AIBS taxonomy *_label columns (10x + PatchSeq) so subclass /
+  ## class / neighborhood / cluster identities match the hier convention
+  ## ("L5 ET" → "L5_ET"). Idempotent; safe on cohorts that lack these cols.
+  meta <- proj5HT::normalize_taxonomy_labels(meta)
+
+  if ("cell_name_label" %in% names(meta)) {
+    md <- tryCatch(headBCI::sheets$cleanMD, error = function(e) NULL)
+    if (!is.null(md) && "cell_name" %in% names(md)) {
+      meta$cell_name <- meta$cell_name_label
+      meta <- dplyr::left_join(meta, md, by = "cell_name", suffix = c("", ".md"))
+      ## normalize hier_*_assignment labels in place
+      ## (single source of truth = proj5HT::normalize_hier_assignments)
+      meta <- proj5HT::normalize_hier_assignments(meta)
+      rownames(meta) <- meta$sample_id
+    }
+    meta$pipe_origin <- ifelse(is.na(match(meta$cell_name_label,
+                                           if (!is.null(md)) md$cell_name else character(0),
+                                           nomatch = NA)),
+                               "on-pipeline", "off-pipeline")
+  }
+
+  ## ---- construct ----------------------------------------------------------
+  obj <- Seurat::CreateSeuratObject(counts    = counts,
+                                    meta.data = meta,
+                                    project   = project)
+  obj[["percent.mt"]] <- Seurat::PercentageFeatureSet(obj, pattern = "^MT*")
+
+  ## (hier_* columns + normalization already attached via the cleanMD join
+  ##  above. add_hier_to_seurat() is reserved for objects built outside this
+  ##  builder — see R/hier_metadata5HT.R.)
+
+  obj
 }
 
-mopPS = SeuratHCT_offPipelineMacaque()
+## ----------------------------------------------------------------------------
+## I/O helper
+## ----------------------------------------------------------------------------
 
-# Patch-Seq offpipeline Human ---------------------------------------------------------------
-SeuratHCT_offPipelineHuman = function(save_object = TRUE, #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                                      subclass = c('L5 IT', 'L5 ET', "L5/6 NP", "L4 IT", "L2/3 IT", "L6 IT", "L6 CT", "L6b")
-                                      ) {
-  MD = projHCT::sheets$MD
-
-  # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
-
-  # Select only our cells
-  tstAP = aPatch[match(MD$cell_name, aPatch$cell_name_label, nomatch = 0), ]
-  #pipeAP = aPatch[!match(MD$cell_name, aPatch$cell_name_label, nomatch = 0),]
-
-  # Pull those cells from the MD to merge
-  tstMD = MD[match(tstAP$cell_name_label, MD$cell_name, nomatch = 0), ]
-  #unique(tstMD$Cortical_area)
-  tstMD[which(tstMD$Cortical_area == "MTG"),"Cortical_area"] = "TCx"
-
-
-  # Check for matches
-  tryCatch({
-    identical(tstMD$cell_name, tstAP$cell_name_label)
-  }, error = function(e) {
-    warning("Metadata names and annotation names do not match", e$message)
-    stop("Critical Failure: ", e$message)
-  })
-
-  tstMD$patched_cell_container_label = tstMD$patched_cell_container
-  tstMD$patched_cell_container = NULL
-  tstMD$sample_id = NULL
-
-  # Metadata merging from our MD with the annotation data from the sequencing data.
-  sMD = merge(tstAP, tstMD, "patched_cell_container_label")
-
-  # Isolate subclass
-  sMD = sMD[is.element(sMD$subclass_Corr_label, subclass), ]
-
-  # Remove Squirrel Monkey Cells that are labeled with a Q instead of a SC
-  #sMD = sMD[-which(sMD$Species == "S.sciureus"),]
-
-  # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
-
-  # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
-  dPatch = dPatch[match(sMD$sample_id, dPatch$sample_id), ]
-  dPatch = as.data.frame(dPatch)
-
-  #### Set rownames and colnames before transposing ####
-  rownames(dPatch) = dPatch$sample_id
-  dPatch$sample_id = NULL
-  dPatch = as.data.frame(t(dPatch))
-  #dPatch = as.data.frame(t(dPatch))
-  #### Dp a log transformation of the data object
-  dPatch = log2(dPatch + 1)
-
-  sMD$set = rep("Human offp-Patch-seq", dim(dPatch)[2])
-
-  dPatch <- Seurat::CreateSeuratObject(counts = dPatch,
-                                       meta.data = sMD,
-                                       project = "opHuman-PatchSeq")
-
-  dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
-
-  if (save_object) {
-    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/offPipeline-Human_PatchSeq.rds")
-  }
-
-  ## Construct data set lists
-
-  return(dPatch)
-
+.save_seurat <- function(obj, name) {
+  dir.create(.SEU_OUTDIR, showWarnings = FALSE, recursive = TRUE)
+  path <- file.path(.SEU_OUTDIR, paste0(name, ".rds"))
+  message("Saving ", path)
+  saveRDS(obj, file = path)
+  invisible(path)
 }
 
-hopPS = SeuratHCT_offPipelineHuman()
+## ----------------------------------------------------------------------------
+## Per-cohort wrappers
+## ----------------------------------------------------------------------------
 
-# all Patch-Seq Macaque ---------------------------------------------------------------
-SeuratHCT_excPatchSeqMacaque = function(save_object = TRUE, #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
-                              ) {
-  MD = projHCT::sheets$MD
-
-  # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "anno.feather"))
-
-  aPatch = aPatch[is.element(aPatch$subclass_Corr_label, subclass), ]
-
-  #aPatch = aPatch[-which(aPatch$species_label == "S.sciureus"),]
-
-
-  # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/", "data.feather"))
-
-  # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
-  dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
-  dPatch = as.data.frame(dPatch)
-
-  #### Set rownames and colnames before transposing ####
-  rownames(dPatch) = dPatch$sample_id
-  dPatch$sample_id = NULL
-  dPatch = as.data.frame(t(dPatch))
-  #### Dp a log transformation of the data object
-  dPatch = log2(dPatch + 1)
-
-  aPatch$pipe_origin = dplyr::if_else(is.na(
-    match(aPatch$cell_name_label, MD$cell_name, nomatch = NA)
-  ), "on-pipeline", "off-pipeline")
-  aPatch$set = "excMacaque-PatchSeq"
-
-
-  dPatch <- Seurat::CreateSeuratObject(counts = dPatch,
-                                       meta.data = aPatch,
-                                       project = "excMacaque-PatchSeq")
-
-  dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
-
-
-  if (save_object) {
-    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/excMacaque_PatchSeq.rds")
-  }
-
-  ## Construct data set lists
-
-  return(dPatch)
-
-}
-mePS = SeuratHCT_excPatchSeqMacaque()
-
-# all Patch-Seq Human ---------------------------------------------------------------
-SeuratHCT_excPatchSeqHuman = function(save_object = TRUE, #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
-                              ) {
-  MD = projHCT::sheets$MD
-
-  # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "anno.feather"))
-
-  aPatch = aPatch[is.element(aPatch$subclass_Corr_label, subclass), ]
-
-  # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0("~/proj5HT/den/macaque/MTG/GreatApes_Human_RSC-122-380_map_full/", "data.feather"))
-
-  # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
-  dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
-  dPatch = as.data.frame(dPatch)
-
-  #### Set rownames and colnames before transposing ####
-  rownames(dPatch) = dPatch$sample_id
-  dPatch$sample_id = NULL
-  dPatch = as.data.frame(t(dPatch))
-  #### Dp a log transformation of the data object
-  dPatch = log2(dPatch + 1)
-
-  aPatch$pipe_origin = dplyr::if_else(is.na(
-    match(aPatch$cell_name_label, MD$cell_name, nomatch = NA)
-  ), "on-pipeline", "off-pipeline")
-
-  aPatch$set = "excHuman-Patch-Seq"
-
-
-  dPatch <- Seurat::CreateSeuratObject(counts = dPatch,
-                                       meta.data = aPatch,
-                                       project = "excHuman Patch-seq")
-
-  dPatch[["percent.mt"]] <- PercentageFeatureSet(dPatch, pattern = "^MT*")
-
-
-  if (save_object) {
-    saveRDS(dPatch, file = "~/proj5HT/data-raw/Seurat/excHuman_PatchSeq.rds")
-  }
-
-  ## Construct data set lists
-
-  return(dPatch)
-
-}
-
-hePS = SeuratHCT_excPatchSeqHuman()
-
-
-# 10xFacs and SmartSeq Macaque ---------------------------------------------------------------
-SeuratHCT_10xSmart = function(pathSmart =  "~/proj5HT/den/macaque/MTG/GreatApes_Macaque_NCBI_RSC-204-396_map_full/",
-                              path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
-                              save_object = TRUE,
-                              save_file = "~/proj5HT/data-raw/Seurat/Macaque_Smart10x.rds",
-                              subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb")
-                              ) {
-  # 10x FACs ----------------------------------------------------------------
-
-  # Annotation data
-  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
-  aMTG$Cortical_area = "TCx"
-
-  # Select Subclass
-  aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep =""))
-  # Feather loads in tibble. Change to dataframe
-  cMTG = as.data.frame(cMTG)
-  cMTG = e(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-  # Annotation data is filtered by subtype at this point.
-
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-  cMTG <- sweep(cMTG, 2, colSums(cMTG), FUN = "/") * 1e6
-  #cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-  cMTG = log2(cMTG + 1)
-
-  cMTG.metadata =  data.frame(
-    set = rep("FACs", dim(cMTG)[2]),
-    pipe = rep("FACs", dim(cMTG)[2]),
-    cell_name = rep("FACs", dim(cMTG)[2]),
-    patched_cell_container = rep("FACs", dim(cMTG)[2]),
-    subclassCorr = aMTG$subclass_label,
-    subclassTree = aMTG$subclass_label,
-    clusterCorr = aMTG$cluster_label,
-    clusterTree = aMTG$cluster_label,
-    roi = aMTG$roi_label,
-    species = aMTG$species_label,
-    neighbourhoodCorr = aMTG$neighborhood_label,
-    row.names = colnames(cMTG)
+#' Off-pipeline (proj5HT cohort) macaque Patch-Seq Seurat object.
+#' @export
+seurat_offpipeline_macaque <- function(save_object = TRUE) {
+  obj <- build_seurat_from_feather(
+    path      = .SEU_PATHS$macaque_patchseq,
+    normalize = "log2_only",
+    project   = "offPipeline_Macaque-PatchSeq"
   )
+  if (save_object) {
+    .save_seurat(obj, "offPipeline-Macaque_PatchSeq")
+    .save_seurat(subset(obj, subset = neighborhood_Corr_label %in% .EXC_NEIGHBORHOODS),
+                 "offPipeline-Macaque_PatchSeq_excitatory")
+    .save_seurat(subset(obj, subset = !neighborhood_Corr_label %in% .EXC_NEIGHBORHOODS),
+                 "offPipeline-Macaque_PatchSeq_inhibitory")
+  }
+  obj
+}
 
-  gc()
-
-  # Smart-Seq ---------------------------------------------------------------
-  # Setup metadata from annotation file
-  aPatch <- feather::read_feather(paste(pathSmart, "anno.feather", sep =""))
-  # Isolate the subclass of interest
-  aPatch = aPatch[is.element(aPatch$subclass_Tree_label, subclass), ]
-
-  # Load counts data. Data is already in RPM
-  dPatch <- feather::read_feather(paste0(pathSmart, "data.feather"))
-
-  # Select out metadata. Will select what's left in the sMD after cell and subclass filtering.
-  dPatch = dPatch[match(aPatch$sample_id, dPatch$sample_id), ]
-  dPatch = as.data.frame(dPatch)
-
-  #### Set rownames and colnames before transposing ####
-  rownames(dPatch) = dPatch$sample_id
-  dPatch$sample_id = NULL
-  dPatch = as.data.frame(t(dPatch))
-  #### Dp a log transformation of the data object
-  dPatch = log2(dPatch + 1)
-
-  pipe_origin = dplyr::if_else(is.na(match(
-    aPatch$cell_name_label, MD$cell_name, nomatch = NA
-  )), "on-pipeline", "off-pipeline")
-
-  dPatch.metadata =  data.frame(
-    set = rep("Smart-Seq", dim(dPatch)[2]),
-    pipe = pipe_origin,
-    cell_name = aPatch$cell_name_label,
-    patched_cell_container = aPatch$patched_cell_container_label,
-    subclassCorr = aPatch$subclass_Corr_label,
-    subclassTree = aPatch$subclass_Tree_label,
-    clusterCorr = aPatch$cluster_Corr_label,
-    clusterTree = aPatch$cluster_Tree_label,
-    roi = aPatch$roi_label,
-    species = aPatch$species_label,
-    neighbourhoodCorr = aPatch$neighborhood_Corr_label,
-    row.names = colnames(dPatch)
+#' Off-pipeline human Patch-Seq Seurat object.
+#' @export
+seurat_offpipeline_human <- function(save_object = TRUE,
+                                     subclass = .EXC_SUBCLASS) {
+  obj <- build_seurat_from_feather(
+    path      = .SEU_PATHS$human_patchseq,
+    subclass  = subclass,
+    normalize = "log2_only",
+    project   = "opHuman-PatchSeq"
   )
-
-
-  # Combine the two datasets
-
-  cMTG = cMTG[-which(is.na(match(rownames(cMTG), rownames(dPatch)))), ]
-  dPatch = dPatch[-which(is.na(match(rownames(dPatch), rownames(cMTG)))), ]
-
-  brain.data = cbind(cMTG, dPatch)
-
-  brain.metadata = rbind(cMTG.metadata, dPatch.metadata)
-
-  Smart10x <- Seurat::CreateSeuratObject(counts = brain.data,
-                                         meta.data = brain.metadata,
-                                         project = "Smart10x")
-
-  Smart10x[["percent.mt"]] <- PercentageFeatureSet(Smart10x, pattern = "^MT*")
-
-  if (save_object) {
-    saveRDS(Smart10x, file = save_file)
-  }
-
-  return(Smart10x)
-
+  if (save_object) .save_seurat(obj, "offPipeline-Human_PatchSeq")
+  obj
 }
 
-
-Smart10x = SeuratHCT_10xSmart()
-
-
-# 10xFACs Macaque ---------------------------------------------------------------
-SeuratHCT_10xMTG = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
-                            save_object = TRUE, return_object = FALSE,
-                            subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b","Chandelier","Pvalb", "Vip", "Sst", "Sst Chodl")
-) {
-  #### Feather for 10x data
-  # Annotation data
-  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
-  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
-
-  aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep = ""))
-
-  # Feather loads in tibble. Change to dataframe
-  cMTG = as.data.frame(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-
-  # Annotation data is filtered by subtype at this point.
-
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-
-  # In counts so need to transform to Reads per million
-  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-
-  cMTG = log2(cMTG + 1)
-
-  ## Construct data set lists
-  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
-                                     meta.data = aMTG,
-                                     project = "cMTG")
-
-  cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
-
-  if (save_object) {
-    message("Saving MacaqueMTG_10xFACs.rds for analysis")
-    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs.rds")
-  }
-
-  if (return_object) {
-    return(cMTG)
-  }
-
-}
-
-SeuratHCT_10xMTG()
-
-SeuratHCT_10xMTGe = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
-                            save_object = TRUE, return_object = FALSE
-
-) {
-  #### Feather for 10x data
-  # Annotation data
-  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
-  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
-
-  unique(aMTG$subclass_label)
-  unique(aMTG$neighborhood_label)
-
-  # Select Subclass
-  aMTG <- aMTG[aMTG$neighborhood_label %in% c("l5et_l56np_l6ct_l6b", "it_types"), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep = ""))
-
-  # Feather loads in tibble. Change to dataframe
-  cMTG = as.data.frame(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-
-
-  # Annotation data is filtered by subtype at this point.
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-
-  # In counts so need to transform to Reads per million
-  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-
-  cMTG = log2(cMTG + 1)
-
-  ## Construct data set lists
-  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
-                                     meta.data = aMTG,
-                                     project = "cMTG")
-
-  cMTG[["percent.mt"]] <- Seurat::PercentageFeatureSet(cMTG, pattern = "^MT*")
-
-  if (save_object) {
-    message("Saving MacaqueMTG_10xFACs_excitatory.rds for analysis")
-    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs_excitatory.rds")
-  }
-
-  if (return_object) {
-  return(cMTG)
-  }
-
-}
-
-SeuratHCT_10xMTGe()
-
-
-SeuratHCT_10xMTGi = function(path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/",
-                            save_object = TRUE, return_object = FALSE
-
-) {
-  #### Feather for 10x data
-  # Annotation data
-  #path_10x = "~/proj5HT/den/GreatApes_Macaque_NCBI/"
-  aMTG <- feather::read_feather(paste(path_10x, "anno.feather", sep = ""))
-
-  # Select Subclass
-
-  aMTG <- aMTG[!aMTG$neighborhood_label %in% c("l5et_l56np_l6ct_l6b", "it_types", "glia"), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste(path_10x, "counts.feather", sep = ""))
-
-  # Feather loads in tibble. Change to dataframe
-  cMTG = as.data.frame(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-
-
-  # Annotation data is filtered by subtype at this point.
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-
-  # In counts so need to transform to Reads per million
-  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-
-  cMTG = log2(cMTG + 1)
-
-  ## Construct data set lists
-  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
-                                     meta.data = aMTG,
-                                     project = "10xFACS_inh")
-
-  cMTG[["percent.mt"]] <- Seurat::PercentageFeatureSet(cMTG, pattern = "^MT*")
-
-  if (save_object) {
-    message("Saving MacaqueMTG_10xFACs_inhibitory.rds for analysis")
-    saveRDS(cMTG, file = "~/proj5HT/data-raw/MacaqueMTG_10xFACs_inhibitory.rds")
-  }
-
-  if (return_object) {
-    return(cMTG)
-  }
-
-}
-
-SeuratHCT_10xMTGi()
-
-# 10x Human ---------------------------------------------------------------
-SeuratHCT_10xHuman = function(human_10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/",
-                              save_object = TRUE,
-                              save_file = "~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds",
-                              #subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")#,"Chandelier","Pvalb", "Vip", "Sst", "Sst Chodl")
-){
-
-  aMTG <- feather::read_feather(paste("//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/", "anno.feather", sep = ""))
-  aMTG$Cortical_area = "TCx"
-
-  # Select Subclass
-  aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste0("//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Human/", "counts.feather"))
-
-  cMTG = as.data.frame(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-  # Annotation data is filtered by subtype at this point.
-
-  #saveRDS(cMTG, "human_cMTG.rds")
-  #cMTG = readRDS("human_cMTG.rds")
-
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-
-  cMTG = log2(cMTG + 1)
-
-  metadata.cMTG <- data.frame(
-    set = rep("FACs-Human", dim(cMTG)[2]),
-    Cortical_area = "MTG",
-    subclass = aMTG$subclass_label,
-    cluster = aMTG$cluster_label,
-    crossSpeciesCluster = aMTG$cross_species_cluster_label,
-    neighbourhood = aMTG$neighborhood_label,
-    row.names = colnames(cMTG)
+#' Full macaque Patch-Seq (excitatory) Seurat object.
+#' @export
+seurat_exc_patchseq_macaque <- function(save_object = TRUE,
+                                        subclass = .EXC_SUBCLASS) {
+  obj <- build_seurat_from_feather(
+    path      = .SEU_PATHS$macaque_patchseq,
+    subclass  = subclass,
+    normalize = "log2_only",
+    project   = "excMacaque-PatchSeq"
   )
-
-  ## Construct data set lists
-  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
-                                     meta.data = aMTG,
-                                     project = "cMTG")
-
-  cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
-
-  if (save_object) {
-    saveRDS(cMTG, file = "~/proj5HT/data-raw/Seurat/HumanMTG_10xFACs.rds")
-  }
-
-  return(cMTG)
-
+  if (save_object) .save_seurat(obj, "excMacaque_PatchSeq")
+  obj
 }
 
-res = SeuratHCT_10xHuman()
-
-# 10x Chimp ---------------------------------------------------------------
-
-SeuratHCT_10xChimp = function(path10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Chimp//",
-                              save_object = TRUE,
-                              save_file = "~/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds",
-                              subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
-){
-
-  aMTG <- feather::read_feather(paste("//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Chimp/", "anno.feather", sep = ""))
-  aMTG$Cortical_area = "TCx"
-
-  # Select Subclass
-  aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
-
-  # Read in counts
-  cMTG <-  feather::read_feather(paste0("//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Chimp/", "counts.feather"))
-
-  cMTG = as.data.frame(cMTG)
-  gene = cMTG$gene
-  rownames(cMTG) = gene
-  cMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  cMTG = cMTG[, match(aMTG$sample_id, colnames(cMTG), nomatch = 0)]
-  # Annotation data is filtered by subtype at this point.
-
-  #saveRDS(cMTG, "human_cMTG.rds")
-  #cMTG = readRDS("human_cMTG.rds")
-
-  if (!identical(seq(1, length(names(cMTG))), match(colnames(cMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  cMTG = as.data.frame(cMTG)
-  cMTG = cMTG * 10^6 / rep(colSums(cMTG), each = nrow(cMTG))
-
-  cMTG = log2(cMTG + 1)
-
-  metadata.cMTG <- data.frame(
-    set = rep("FACs-Human", dim(cMTG)[2]),
-    Cortical_area = "MTG",
-    subclass = aMTG$subclass_label,
-    cluster = aMTG$cluster_label,
-    crossSpeciesCluster = aMTG$cross_species_cluster_label,
-    neighbourhood = aMTG$neighborhood_label,
-    row.names = colnames(cMTG)
+#' Full human Patch-Seq (excitatory) Seurat object.
+#' @export
+seurat_exc_patchseq_human <- function(save_object = TRUE,
+                                      subclass = .EXC_SUBCLASS) {
+  obj <- build_seurat_from_feather(
+    path      = .SEU_PATHS$human_patchseq,
+    subclass  = subclass,
+    normalize = "log2_only",
+    project   = "excHuman Patch-seq"
   )
-
-  ## Construct data set lists
-  cMTG <- Seurat::CreateSeuratObject(counts = cMTG,
-                                     meta.data = aMTG,
-                                     project = "chimp10x")
-
-  cMTG[["percent.mt"]] <- PercentageFeatureSet(cMTG, pattern = "^MT*")
-
-  if (save_object) {
-    saveRDS(cMTG, file = "~/proj5HT/data-raw/Seurat/ChimpMTG_10xFACs.rds")
-  }
-
-  return(cMTG)
-
+  if (save_object) .save_seurat(obj, "excHuman_PatchSeq")
+  obj
 }
 
-# 10x Gorilla -------------------------------------------------------------
-SeuratHCT_10xGorilla = function(path10x = "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/GreatApes_Gorilla/",
-                              save_object = TRUE,
-                              save_file = "~/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds",
-                              subclass = c('L5 IT','L5 ET',"L2/3 IT")
-                              #subclass = c('L5 IT','L5 ET',"L5/6 NP","L4 IT","L2/3 IT","L6 IT","L6 CT","L6b")
-){
-
-  aMTG <- feather::read_feather(paste(path10x, "anno.feather", sep = ""))
-  aMTG$Cortical_area = "TCx"
-
-  # Select Subclass
-  aMTG <- aMTG[is.element(aMTG$subclass_label, subclass), ]
-
-  # Read in counts
-  gMTG <-  feather::read_feather(paste0(path10x, "counts.feather"))
-
-  gMTG = as.data.frame(gMTG)
-  gene = gMTG$gene
-  rownames(gMTG) = gene
-  gMTG$gene = NULL
-
-  # Select the cells, identified by column names, by those that are left in the annotation data
-  gMTG = gMTG[, match(aMTG$sample_id, colnames(gMTG), nomatch = 0)]
-  # Annotation data is filtered by subtype at this point.
-
-  #saveRDS(gMTG, "gorilla_gMTG.rds")
-  gMTG = readRDS("gorilla_cMTG.rds")
-
-  if (!identical(seq(1, length(names(gMTG))), match(colnames(gMTG), aMTG$sample_id))) {
-    errorCondition(message = "Counts colnames and sample_id do not match")
-  }
-
-  gMTG = as.data.frame(gMTG)
-  gMTG = gMTG * 10^6 / rep(colSums(gMTG), each = nrow(gMTG))
-
-  gMTG = log2(gMTG + 1)
-
-  ## Construct data set lists
-
-  gMTG <- Seurat::CreateSeuratObject(counts = gMTG,
-                                     meta.data = aMTG,
-                                     project = "Gorilla10x")
-
-  gMTG[["percent.mt"]] <- PercentageFeatureSet(gMTG, pattern = "^MT*")
-
-  if (save_object) {
-    saveRDS(gMTG, file = "~/proj5HT/data-raw/Seurat/GorillaMTG_10xFACs.rds")
-  }
-
-  return(gMTG)
-
+#' Macaque 10x FACS Seurat object (all cells, optionally subset by
+#' subclass / neighborhood).
+#' @export
+seurat_macaque_10x <- function(save_object = TRUE,
+                               subclass = NULL,
+                               neighborhood = NULL,
+                               name = "MacaqueMTG_10xFACs") {
+  obj <- build_seurat_from_feather(
+    path         = .SEU_PATHS$macaque_10x,
+    subclass     = subclass,
+    neighborhood = neighborhood,
+    normalize    = "cpm_log2",
+    project      = "Macaque10xFACS"
+  )
+  if (save_object) .save_seurat(obj, name)
+  obj
 }
+
+#' Human 10x FACS Seurat object.
+#' @export
+seurat_human_10x <- function(save_object = TRUE,
+                             subclass = .EXC_SUBCLASS) {
+  obj <- build_seurat_from_feather(
+    path        = .SEU_PATHS$human_10x,
+    subclass    = subclass,
+    normalize   = "cpm_log2",
+    project     = "Human10xFACS"
+  )
+  if (save_object) .save_seurat(obj, "HumanMTG_10xFACs")
+  obj
+}
+
+#' Chimp 10x FACS Seurat object.
+#' @export
+seurat_chimp_10x <- function(save_object = TRUE,
+                             subclass = c("L5 IT", "L5 ET", "L2/3 IT")) {
+  obj <- build_seurat_from_feather(
+    path        = .SEU_PATHS$chimp_10x,
+    subclass    = subclass,
+    normalize   = "cpm_log2",
+    project     = "Chimp10xFACS"
+  )
+  if (save_object) .save_seurat(obj, "ChimpMTG_10xFACs")
+  obj
+}
+
+#' Gorilla 10x FACS Seurat object.
+#' @export
+seurat_gorilla_10x <- function(save_object = TRUE,
+                               subclass = c("L5 IT", "L5 ET", "L2/3 IT")) {
+  obj <- build_seurat_from_feather(
+    path        = .SEU_PATHS$gorilla_10x,
+    subclass    = subclass,
+    normalize   = "cpm_log2",
+    project     = "Gorilla10xFACS"
+  )
+  if (save_object) .save_seurat(obj, "GorillaMTG_10xFACs")
+  obj
+}
+
+## ----------------------------------------------------------------------------
+## Driver
+## ----------------------------------------------------------------------------
+
+#' Build every Seurat cohort in one call. Returns a named list.
+#' @export
+build_all_seurat_objects <- function(save_object = TRUE) {
+  list(
+    macaque_patchseq_off = seurat_offpipeline_macaque(save_object),
+    human_patchseq_off   = seurat_offpipeline_human(save_object),
+    macaque_patchseq_exc = seurat_exc_patchseq_macaque(save_object),
+    human_patchseq_exc   = seurat_exc_patchseq_human(save_object),
+    macaque_10x_all      = seurat_macaque_10x(save_object,
+                                              subclass = .EXC_INH_SUBCLASS),
+    macaque_10x_exc      = seurat_macaque_10x(save_object,
+                                              neighborhood = .EXC_NEIGHBORHOODS,
+                                              name = "MacaqueMTG_10xFACs_excitatory"),
+    macaque_10x_inh      = seurat_macaque_10x(save_object,
+                                              neighborhood = setdiff(
+                                                unique_neighborhoods_macaque(),
+                                                c(.EXC_NEIGHBORHOODS, "glia")),
+                                              name = "MacaqueMTG_10xFACs_inhibitory"),
+    human_10x            = seurat_human_10x(save_object),
+    chimp_10x            = seurat_chimp_10x(save_object),
+    gorilla_10x          = seurat_gorilla_10x(save_object)
+  )
+}
+
+## helper used by build_all_seurat_objects() for the inhibitory subset
+unique_neighborhoods_macaque <- function() {
+  a <- feather::read_feather(file.path(.SEU_PATHS$macaque_10x, "anno.feather"))
+  unique(a$neighborhood_label)
+}
+
+## ----------------------------------------------------------------------------
+## (No auto-execution at source-time — call build_all_seurat_objects()
+##  explicitly when you want a rebuild.)
+## ----------------------------------------------------------------------------

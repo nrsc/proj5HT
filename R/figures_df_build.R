@@ -53,7 +53,7 @@ figure_df_build <- function() {
   }
 
   ## --------------------------------------------------------------------- data
-  MD      <- projHCT::sheets$MD
+  MD      <- headBCI::sheets$MD
   comp5HT <- readRDS("data-raw/compiled5HT.rds")
 
   df <- data.frame(comp5HT$srtPuff)

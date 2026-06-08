@@ -44,8 +44,8 @@ dPatch$neighborhood_Corr_label
 
 ```{r}
 #obj = subset(dPatch, subset = subclass_Corr %in% c("L2/3_IT") & Cortical_area %in% c("MCx", "TCx"))
-obj = brain
-obj = subset(brain, subset = subclass_Corr %in% c("L2/3_IT"))
+obj = dPatch
+obj = subset(dPatch, subset = subclass_Corr %in% c("L2/3_IT"))
 obj$assigned_depth = ifelse(is.na(obj$LIMS_depth), obj$Depth_from_pia*.77, obj$LIMS_depth)
 
 obj <- subset(obj, subset = !is.na(assigned_depth))
